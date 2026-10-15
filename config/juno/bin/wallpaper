@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/../lib/runtime.sh"
+source "$SCRIPT_DIR/../lib/wallpaper.sh"
+juno_require jq realpath
+
+action=${1:-select}
+case "$action" in
+    select|apply|list|current) [[ $# -le 1 ]] || exit 2 ;;
+    set) [[ $# == 2 ]] || exit 2 ;;
+    *) printf 'Uso: wallpaper [select|apply|list|current|set ID]\n' >&2; exit 2 ;;
+esac
+if ! juno_wallpaper_catalog; then
+    juno_notice normal 'Galeria indisponível' 'O catálogo de papéis de parede está ausente ou inválido.'
+    exit 1
+fi
+case "$action" in
+    list) jq -r '.wallpapers[] | [.id, .name] | @tsv' "$JUNO_WALLPAPER_CATALOG"; exit 0 ;;
+    current) juno_wallpaper_current; exit ;;
+esac
+juno_require awww flock
+juno_require_session
+juno_prepare_runtime
+lock_file=$JUNO_RUNTIME_DIR/wallpaper-$(juno_session_key).lock
+juno_safe_output "$lock_file"
+exec 7>"$lock_file"
+flock -n 7 || exit 0
+
+current=$(juno_wallpaper_current) || exit 1
+case "$action" in
+    apply) selected=$current ;;
+    set) selected=$2 ;;
+    select)
+        juno_require rofi
+        mapfile -t ids < <(jq -r '.wallpapers[].id' "$JUNO_WALLPAPER_CATALOG")
+        # Native jq on Windows emits CRLF when running the mocked Linux tests.
+        carriage_return=$'\r'
+        ids=("${ids[@]%"$carriage_return"}")
+        current_index=0
+        for index in "${!ids[@]}"; do
+            if [[ ${ids[$index]} == "$current" ]]; then current_index=$index; break; fi
+        done
+        if ! selected_index=$(jq -r '.wallpapers[].name' "$JUNO_WALLPAPER_CATALOG" |
+            rofi -config "$JUNO_CONFIG_HOME/rofi/config.rasi" -dmenu -i -no-custom -format i \
+                -selected-row "$current_index" -p 'PAPEL DE PAREDE' -mesg 'Enter aplica ao desktop e ao bloqueio · Esc cancela'); then
+            exit 0
+        fi
+        [[ $selected_index =~ ^[0-9]+$ && ${#selected_index} -le 3 ]] || exit 0
+        selected_index=$((10#$selected_index))
+        [[ $selected_index -lt ${#ids[@]} ]] || exit 0
+        selected=${ids[$selected_index]}
+        ;;
+esac
+if ! image=$(juno_wallpaper_file "$selected"); then
+    juno_notice normal 'Imagem indisponível' 'Selecione um arquivo regular da galeria instalada.'
+    exit 1
+fi
+# Validate the destination before changing the desktop. A failed awww command
+# never overwrites the last successful selection used by the lock screen.
+if ! juno_wallpaper_state_path; then
+    juno_notice normal 'Seleção não salva' 'O diretório de preferências Juno não é seguro.'
+    exit 1
+fi
+if ! awww query >/dev/null 2>&1 || ! awww img --transition-type none "$image"; then
+    juno_notice normal 'Papel de parede indisponível' 'O daemon awww não respondeu ou não pôde carregar a imagem. A seleção anterior foi preservada.'
+    exit 1
+fi
+if ! juno_wallpaper_remember "$selected"; then
+    juno_notice normal 'Seleção não salva' 'A imagem foi aplicada, mas não foi possível guardar a preferência.'
+    exit 1
+fi
+if [[ $action != apply ]]; then
+    juno_notice normal 'Papel de parede atualizado' 'A imagem também será usada na próxima tela de bloqueio.'
+fi

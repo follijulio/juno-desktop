@@ -50,7 +50,7 @@ juno_begin_log() {
 
 juno_private_subdir() {
     local name=$1 path
-    case $name in logs|packages) ;; *) juno_die 'Subdiretório de estado inválido.' ;; esac
+    case $name in logs|packages|apps) ;; *) juno_die 'Subdiretório de estado inválido.' ;; esac
     path="$JUNO_STATE/$name"
     [[ ! -L $path ]] || juno_die "O diretório de estado não pode ser um link: $path."
     if [[ -e $path ]]; then

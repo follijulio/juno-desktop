@@ -13,6 +13,7 @@ else
 fi
 python3 tools/check_brand.py
 python3 tools/generate_wallpaper.py --check
+python3 tools/catalog_wallpapers.py --check
 python3 -m unittest discover -s tests -p '*_test.py'
 if command -v lua >/dev/null 2>&1; then
     lua tests/config.lua "$ROOT"
@@ -26,4 +27,8 @@ bash tests/integration.sh
 bash tests/transaction.sh
 bash tests/runtime.sh
 bash tests/session.sh
+bash tests/multilib.sh
+bash tests/applications.sh
+bash tests/vscode.sh
+bash tests/wallpaper.sh
 printf 'Verificações locais concluídas. A sessão gráfica exige aceitação nativa no Arch.\n'

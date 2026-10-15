@@ -62,6 +62,7 @@ sudo() {
     if [[ ${1:-} == -v ]]; then return 0; fi
     "$@"
 }
+juno_enable_multilib() { :; }
 expect_failure juno_install_packages
 grep -q -- '-Syu --needed -- hyprland' "$PACMAN_CALLS"
 [[ -f $(find "$JUNO_STATE/packages" -name '*.before.txt' -print -quit) ]]

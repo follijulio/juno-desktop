@@ -4,7 +4,7 @@ set -E
 
 JUNO_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 readonly JUNO_ROOT
-for module in common preflight packages validate transaction; do
+for module in common preflight packages validate transaction multilib applications vscode wallpapers; do
     # shellcheck source=/dev/null
     source "$JUNO_ROOT/lib/$module.sh"
 done
@@ -53,10 +53,12 @@ juno_main() {
     if [[ $operation == dry-run ]]; then
         juno_preflight_install readonly
         juno_validate_resources
+        juno_validate_gallery
         juno_log 'Simulação: nenhum arquivo, pacote ou serviço será alterado.'
         printf 'Atualização: sudo pacman -Syu --needed'
         printf ' %q' "${JUNO_PACKAGES[@]}"
         printf '\n'
+        juno_applications_plan
         for target in "${JUNO_TARGETS[@]}"; do
             printf 'Gerenciado: %s/%s\n' "$JUNO_HOME" "$target"
         done
@@ -85,9 +87,12 @@ juno_main() {
 
     juno_preflight_install apply
     juno_validate_resources
+    juno_validate_gallery
     juno_install_packages
     juno_validate_hyprland_version
+    juno_install_applications
     txn_prepare
+    juno_stage_gallery
     juno_validate_staged
     if txn_changed; then
         txn_backup

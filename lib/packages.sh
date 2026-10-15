@@ -6,6 +6,10 @@ JUNO_PACKAGES=(
     pipewire pipewire-audio pipewire-pulse wireplumber
     xdg-desktop-portal xdg-desktop-portal-hyprland xdg-desktop-portal-gtk
     xdg-user-dirs qt6-wayland curl diffutils procps-ng dbus
+    firefox thunar mpv pavucontrol zip unzip flatpak steam discord
+    base-devel git github-cli python python-pip uv nodejs npm go rust
+    clang cmake ninja gdb lldb pkgconf ripgrep fd sqlite shellcheck shfmt
+    nss alsa-lib libxkbfile libsecret gtk3 libxss libxrandr lsof desktop-file-utils
 )
 
 juno_install_packages() {
@@ -20,6 +24,7 @@ juno_install_packages() {
     done
     juno_log 'Atualizando o Arch e instalando as dependências oficiais. Revise a transação do pacman.'
     sudo -v
+    juno_enable_multilib
     if sudo pacman -Syu --needed -- "${JUNO_PACKAGES[@]}"; then
         pacman -Q > "$snapshot_dir/$snapshot_id.after.txt"
     else

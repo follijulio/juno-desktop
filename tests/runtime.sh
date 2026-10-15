@@ -24,7 +24,9 @@ export STUB_LOG="$TEST_SANDBOX/commands.log"
 export STUB_ROFI_STATE="$TEST_SANDBOX/rofi-state"
 export STUB_CLIPBOARD="$TEST_SANDBOX/clipboard"
 export STUB_PICTURES="$HOME/Imagens com espaços"
-mkdir -p -- "$TEST_SANDBOX/bin" "$HOME" "$XDG_RUNTIME_DIR"
+export STUB_LOCK_CONFIG="$TEST_SANDBOX/hyprlock.conf"
+mkdir -p -- "$TEST_SANDBOX/bin" "$HOME" "$XDG_RUNTIME_DIR" "$XDG_CONFIG_HOME/hypr"
+cp -- "$PROJECT_ROOT/config/hypr/hyprlock.conf" "$XDG_CONFIG_HOME/hypr/hyprlock.conf"
 chmod 700 -- "$XDG_RUNTIME_DIR"
 export PATH="$TEST_SANDBOX/bin:$PATH"
 
@@ -49,7 +51,7 @@ case "$name" in
     hyprctl) exit "${STUB_HYPRCTL_EXIT:-0}" ;;
     flock) exit "${STUB_FLOCK_EXIT:-0}" ;;
     pgrep) exit 1 ;;
-    hyprlock) exit "${STUB_HYPRLOCK_EXIT:-0}" ;;
+    hyprlock) cp -- "${@: -1}" "$STUB_LOCK_CONFIG"; exit "${STUB_HYPRLOCK_EXIT:-0}" ;;
     wpctl)
         [[ ${STUB_WPCTL_EXIT:-0} == 0 ]] || exit "$STUB_WPCTL_EXIT"
         [[ ${1:-} != get-volume ]] || printf 'Volume: 0.55\n'
@@ -169,7 +171,9 @@ reset_stubs
 export STUB_HYPRLOCK_EXIT=1
 run_expect 1 runtime_script lock
 assert_log 'Bloqueio não iniciado'
-assert_log "hyprlock <--no-fade-in> <--config> <$XDG_CONFIG_HOME/hypr/hyprlock.conf>"
+assert_log "hyprlock <--no-fade-in> <--config> <$XDG_RUNTIME_DIR/juno-desktop/hyprlock-juno-test-123.conf>"
+grep -Fx '    path = ' "$STUB_LOCK_CONFIG" >/dev/null
+[[ ! -e $XDG_RUNTIME_DIR/juno-desktop/hyprlock-juno-test-123.conf ]]
 
 reset_stubs
 run_expect 0 runtime_script audio up

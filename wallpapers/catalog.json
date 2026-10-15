@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "default": "ghibli-vale",
+  "wallpapers": [
+    {
+      "id": "abstrato-azul",
+      "name": "Abstrato azul",
+      "file": "abstrato-azul.avif"
+    },
+    {
+      "id": "armadura-em-combate",
+      "name": "Armadura em combate",
+      "file": "armadura-em-combate.jpg"
+    },
+    {
+      "id": "buraco-negro-luz",
+      "name": "Buraco negro luz",
+      "file": "buraco-negro-luz.jpg"
+    },
+    {
+      "id": "buraco-negro-orbita",
+      "name": "Buraco negro orbita",
+      "file": "buraco-negro-orbita.jpg"
+    },
+    {
+      "id": "buraco-negro-roxo",
+      "name": "Buraco negro roxo",
+      "file": "buraco-negro-roxo.jpg"
+    },
+    {
+      "id": "buraco-negro-roxo-webp",
+      "name": "Buraco negro roxo",
+      "file": "buraco-negro-roxo.webp"
+    },
+    {
+      "id": "castelo-ambulante",
+      "name": "Castelo ambulante",
+      "file": "castelo-ambulante.png"
+    },
+    {
+      "id": "che-guevara",
+      "name": "Che guevara",
+      "file": "che-guevara.png"
+    },
+    {
+      "id": "chihiro-na-chuva",
+      "name": "Chihiro · Chuva",
+      "file": "chihiro-na-chuva.png"
+    },
+    {
+      "id": "folhas-azuis",
+      "name": "Folhas azuis",
+      "file": "folhas-azuis.avif"
+    },
+    {
+      "id": "frieren-editorial",
+      "name": "Frieren editorial",
+      "file": "frieren-editorial.jpg"
+    },
+    {
+      "id": "gato-espiral",
+      "name": "Gato espiral",
+      "file": "gato-espiral.jpg"
+    },
+    {
+      "id": "gato-vermelho",
+      "name": "Gato vermelho",
+      "file": "gato-vermelho.png"
+    },
+    {
+      "id": "ghibli-girassois",
+      "name": "Ghibli · Girassóis",
+      "file": "ghibli-girassois.png"
+    },
+    {
+      "id": "ghibli-ilha",
+      "name": "Ghibli · Ilha ao vento",
+      "file": "ghibli-ilha.jpg"
+    },
+    {
+      "id": "ghibli-jardim",
+      "name": "Ghibli · Jardim",
+      "file": "ghibli-jardim.jpg"
+    },
+    {
+      "id": "ghibli-lago",
+      "name": "Ghibli · Lago",
+      "file": "ghibli-lago.jpeg"
+    },
+    {
+      "id": "ghibli-pintora",
+      "name": "Ghibli · Pintora",
+      "file": "ghibli-pintora.jpeg"
+    },
+    {
+      "id": "ghibli-reflexo",
+      "name": "Ghibli · Reflexo",
+      "file": "ghibli-reflexo.jpg"
+    },
+    {
+      "id": "ghibli-ruinas",
+      "name": "Ghibli · Ruínas",
+      "file": "ghibli-ruinas.jpg"
+    },
+    {
+      "id": "ghibli-vale",
+      "name": "Ghibli · Vale tranquilo",
+      "file": "ghibli-vale.jpg"
+    },
+    {
+      "id": "lenin",
+      "name": "Lenin",
+      "file": "lenin.png"
+    },
+    {
+      "id": "mecha-no-horizonte",
+      "name": "Mecha no horizonte",
+      "file": "mecha-no-horizonte.jpg"
+    },
+    {
+      "id": "ondas-azuis",
+      "name": "Ondas azuis",
+      "file": "ondas-azuis.jpg"
+    },
+    {
+      "id": "rdr-acampamento",
+      "name": "Rdr acampamento",
+      "file": "rdr-acampamento.png"
+    },
+    {
+      "id": "rdr-cavaleiro",
+      "name": "Rdr cavaleiro",
+      "file": "rdr-cavaleiro.png"
+    },
+    {
+      "id": "rdr-montanhas",
+      "name": "Rdr montanhas",
+      "file": "rdr-montanhas.png"
+    },
+    {
+      "id": "rdr-retrato",
+      "name": "Rdr retrato",
+      "file": "rdr-retrato.png"
+    },
+    {
+      "id": "snoopy",
+      "name": "Snoopy",
+      "file": "snoopy.png"
+    },
+    {
+      "id": "socrates-campo",
+      "name": "Socrates campo",
+      "file": "socrates-campo.jpg"
+    },
+    {
+      "id": "socrates-vitoria",
+      "name": "Socrates vitoria",
+      "file": "socrates-vitoria.jpg"
+    }
+  ]
+}

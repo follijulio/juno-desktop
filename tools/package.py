@@ -11,6 +11,7 @@ import tarfile
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "dist"
 EXCLUDED = {".git", ".cache", "dist", "__pycache__"}
+BINARY = {".ttf", ".png", ".jpg", ".jpeg", ".webp", ".avif", ".gif", ".ico"}
 
 
 def main() -> None:
@@ -25,7 +26,7 @@ def main() -> None:
                 if path.is_symlink():
                     raise ValueError(f"Link simbólico inesperado: {relative}")
                 data = path.read_bytes()
-                if path.suffix not in {".ttf", ".png"}:
+                if path.suffix.lower() not in BINARY:
                     data = data.replace(b"\r\n", b"\n")
                 entry = tarfile.TarInfo(f"juno-desktop/{relative.as_posix()}")
                 entry.size = len(data)
