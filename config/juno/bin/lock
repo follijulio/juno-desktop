@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/../lib/runtime.sh"
+juno_require hyprlock flock pgrep
+juno_require_session
+juno_prepare_runtime
+
+lock_file=$JUNO_RUNTIME_DIR/lock-$(juno_session_key).lock
+juno_safe_output "$lock_file"
+exec 8>"$lock_file"
+if ! flock -n 8; then
+    exit 0
+fi
+if juno_is_running hyprlock; then
+    exit 0
+fi
+
+if ! hyprlock --no-fade-in --config "$JUNO_CONFIG_HOME/hypr/hyprlock.conf"; then
+    juno_notice critical 'Bloqueio não iniciado' 'A tela não foi bloqueada. Consulte o log da sessão antes de se afastar.'
+    exit 1
+fi

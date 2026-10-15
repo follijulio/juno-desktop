@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/../lib/runtime.sh"
+case "${1:-}" in
+    up) amount=5%+ ;;
+    down) amount=5%- ;;
+    *) printf 'Uso: brightness {up|down}\n' >&2; exit 2 ;;
+esac
+juno_require brightnessctl
+if ! status=$(brightnessctl --class=backlight --machine-readable --min-value=1 set "$amount" 2>/dev/null); then
+    juno_notice normal 'Brilho indisponível' 'Este equipamento não oferece um controle de luz de fundo acessível.'
+    exit 1
+fi
+percent=$(awk -F, 'NR == 1 { print $4 }' <<< "$status")
+juno_notice normal 'Brilho' "${percent:-Atualizado}."

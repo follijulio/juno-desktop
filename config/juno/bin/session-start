@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/../lib/runtime.sh"
+source "$SCRIPT_DIR/../lib/waybar.sh"
+juno_require_session
+juno_require flock pgrep dbus-update-activation-environment systemctl jq
+juno_prepare_runtime
+
+session_key=$(juno_session_key)
+lock_file=$JUNO_RUNTIME_DIR/start-$session_key.lock
+juno_safe_output "$lock_file"
+exec 9>"$lock_file"
+flock -n 9 || exit 0
+juno_prepare_log_dir
+export JUNO_RUNTIME_BIN=$SCRIPT_DIR
+
+# Keep the auth-agent condition and D-Bus activation ordered after the import.
+if ! dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE; then
+    juno_notice critical 'Integração incompleta' 'Não foi possível atualizar o ambiente D-Bus da sessão.'
+    exit 1
+fi
+if ! systemctl --user start pipewire.socket pipewire-pulse.socket wireplumber.service; then
+    juno_notice critical 'Áudio indisponível' 'Não foi possível iniciar o PipeWire e o WirePlumber. Consulte os serviços de áudio em journalctl --user.'
+fi
+if ! systemctl --user start hyprpolkitagent.service; then
+    juno_notice critical 'Autenticação indisponível' 'Não foi possível iniciar o agente de autenticação. Consulte journalctl --user -u hyprpolkitagent.'
+fi
+
+start_once() {
+    local process=$1 log_file
+    shift
+    if ! command -v "$1" >/dev/null 2>&1; then
+        juno_notice critical 'Sessão incompleta' "O comando $1 não está instalado."
+        return 0
+    fi
+    if ! juno_is_running "$process"; then
+        log_file=$JUNO_LOG_DIR/$process.log
+        juno_safe_output "$log_file" || return 0
+        # Release the startup lock in children so failed components can be retried.
+        nohup "$@" >> "$log_file" 2>&1 < /dev/null 9>&- &
+    fi
+}
+
+start_once mako mako --config "$JUNO_CONFIG_HOME/mako/config"
+
+waybar_base=$JUNO_CONFIG_HOME/waybar/config.jsonc
+waybar_runtime=$JUNO_RUNTIME_DIR/waybar-$session_key.json
+juno_safe_output "$waybar_runtime"
+if juno_build_waybar_config "$waybar_base" "$waybar_runtime"; then
+    start_once waybar waybar --config "$waybar_runtime" --style "$JUNO_CONFIG_HOME/waybar/style.css"
+else
+    rm -f -- "$waybar_runtime"
+    juno_notice critical 'Barra indisponível' 'A configuração da Waybar não é um JSON válido.'
+fi
+
+start_once awww-daemon awww-daemon
+wallpaper=$JUNO_DATA_HOME/juno-desktop/wallpapers/juno-paper.png
+if command -v awww >/dev/null 2>&1; then
+    wallpaper_ready=false
+    for ((attempt = 0; attempt < 50; attempt++)); do
+        if awww query >/dev/null 2>&1; then wallpaper_ready=true; break; fi
+        sleep 0.1
+    done
+    if [[ $wallpaper_ready == true && -r $wallpaper ]]; then
+        awww img --transition-type none "$wallpaper" || juno_notice normal 'Papel de parede indisponível' 'O fundo creme continua disponível; não foi possível carregar a imagem Juno.'
+    else
+        juno_notice normal 'Papel de parede indisponível' 'O daemon ou a imagem Juno não está disponível. O fundo creme continua ativo.'
+    fi
+fi
+
+start_once hypridle hypridle --config "$JUNO_CONFIG_HOME/hypr/hypridle.conf"

@@ -1,0 +1,31 @@
+# Cartões planos. Sem ícones ou markup fornecidos por aplicativos.
+font=Roboto 12
+background-color=#FFFFFF
+text-color=#111111
+border-color=#111111
+progress-color=over #FFE066
+width=360
+height=180
+margin=76,12,12
+padding=14
+border-size=2
+border-radius=0
+anchor=top-right
+layer=overlay
+icons=0
+markup=0
+format=%s\n%b
+default-timeout=7000
+ignore-timeout=1
+max-visible=4
+max-history=10
+on-button-left=invoke-default-action
+on-button-right=dismiss
+on-button-middle=dismiss-all
+
+[urgency=critical]
+background-color=#FF9B85
+default-timeout=0
+
+[mode=do-not-disturb]
+invisible=1

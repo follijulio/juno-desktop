@@ -1,0 +1,71 @@
+/* Fundo tinta do window exposto em baixo/direita forma a sombra sólida. */
+* {
+    paper: #FFFDF5;
+    ink: #111111;
+    white: #FFFFFF;
+    beige: #F4EDDB;
+    yellow: #FFCC00;
+    mint: #B8F2E6;
+    coral: #FF9B85;
+    font: "Roboto 13";
+    background-color: @paper;
+    text-color: @ink;
+    border-color: @ink;
+    border-radius: 0px;
+}
+window {
+    width: 42em;
+    location: center;
+    anchor: center;
+    background-color: @ink;
+    border: 0px;
+    padding: 0px 4px 4px 0px;
+    children: [ mainbox ];
+}
+mainbox {
+    background-color: @paper;
+    border: 4px;
+    padding: 18px;
+    spacing: 14px;
+    children: [ inputbar, message, listview ];
+}
+inputbar {
+    background-color: @white;
+    border: 2px;
+    padding: 12px;
+    spacing: 10px;
+    children: [ prompt, entry ];
+}
+prompt {
+    font: "Space Mono Bold 10";
+    background-color: @white;
+    text-color: @ink;
+}
+entry {
+    background-color: @white;
+    text-color: @ink;
+    placeholder: "Buscar…";
+    placeholder-color: @ink;
+}
+message { background-color: @beige; padding: 8px; border: 2px; }
+textbox { background-color: @beige; text-color: @ink; }
+listview {
+    background-color: @paper;
+    lines: 8;
+    columns: 1;
+    spacing: 6px;
+    fixed-height: false;
+    scrollbar: false;
+}
+element {
+    background-color: @white;
+    border: 2px;
+    padding: 10px;
+    spacing: 0px;
+    children: [ element-text ];
+}
+element normal normal, element alternate normal { background-color: @white; }
+element selected normal, element selected active { background-color: @yellow; }
+element normal active, element alternate active { background-color: @mint; }
+element normal urgent, element alternate urgent, element selected urgent { background-color: @coral; }
+element-text { background-color: inherit; text-color: inherit; }

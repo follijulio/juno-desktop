@@ -1,0 +1,85 @@
+{
+  "layer": "top",
+  "position": "top",
+  "height": 52,
+  "spacing": 0,
+  "margin-top": 8,
+  "margin-left": 8,
+  "margin-right": 8,
+  "margin-bottom": 4,
+  "modules-left": ["custom/launcher", "hyprland/workspaces", "hyprland/window"],
+  "modules-center": ["clock"],
+  "modules-right": ["cpu", "memory", "network", "wireplumber", "custom/session"],
+  "custom/launcher": {
+    "format": "JUNO",
+    "tooltip-format": "Abrir aplicativos · Super + D",
+    "on-click": "rofi -show drun"
+  },
+  "hyprland/workspaces": {
+    "format": "{name}",
+    "all-outputs": false,
+    "sort-by-number": true,
+    "on-click": "activate",
+    "persistent-workspaces": {"*": 5},
+    "disable-scroll": true
+  },
+  "hyprland/window": {
+    "format": "{}",
+    "max-length": 18,
+    "separate-outputs": true,
+    "tooltip": false,
+    "icon": false
+  },
+  "clock": {
+    "format": "{:%H:%M}",
+    "format-alt": "{:%d/%m · %H:%M}",
+    "tooltip-format": "{:%d/%m/%Y}",
+    "interval": 30
+  },
+  "cpu": {
+    "interval": 5,
+    "format": "CPU {usage}%",
+    "tooltip-format": "Processador · {avg_frequency} GHz"
+  },
+  "memory": {
+    "interval": 5,
+    "format": "RAM {percentage}%",
+    "tooltip-format": "Memória · {used:0.1f} / {total:0.1f} GiB"
+  },
+  "network": {
+    "interval": 5,
+    "format-wifi": "REDE {signalStrength}%",
+    "format-ethernet": "REDE CABO",
+    "format-disconnected": "SEM REDE",
+    "tooltip-format-wifi": "{essid} · {ipaddr}",
+    "tooltip-format-ethernet": "{ifname} · {ipaddr}",
+    "tooltip-format-disconnected": "Sem conexão"
+  },
+  "wireplumber": {
+    "format": "SOM {volume}%",
+    "format-muted": "SEM SOM",
+    "tooltip": false,
+    "max-volume": 100,
+    "scroll-step": 5,
+    "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+  },
+  "battery": {
+    "interval": 30,
+    "format": "BAT {capacity}%",
+    "format-charging": "CARGA {capacity}%",
+    "format-plugged": "CARGA {capacity}%",
+    "states": {"warning": 25, "critical": 10},
+    "tooltip-format": "Bateria · {timeTo}"
+  },
+  "backlight": {
+    "format": "LUZ {percent}%",
+    "tooltip": false,
+    "on-scroll-up": "bash \"${XDG_CONFIG_HOME:-$HOME/.config}/juno/bin/brightness\" up",
+    "on-scroll-down": "bash \"${XDG_CONFIG_HOME:-$HOME/.config}/juno/bin/brightness\" down"
+  },
+  "custom/session": {
+    "format": "SESSÃO",
+    "tooltip-format": "Bloquear ou encerrar a sessão",
+    "on-click": "bash \"${XDG_CONFIG_HOME:-$HOME/.config}/juno/bin/power-menu\""
+  }
+}

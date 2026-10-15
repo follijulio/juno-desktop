@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/../lib/runtime.sh"
+mode=${1:-save}
+case "$mode" in
+    save|copy|full) ;;
+    *) printf 'Uso: screenshot [save|copy|full]\n' >&2; exit 2 ;;
+esac
+juno_require grim mktemp
+juno_require_session
+
+geometry=
+if [[ $mode != full ]]; then
+    juno_require slurp
+    if geometry=$(slurp); then
+        [[ -n $geometry ]] || exit 0
+    else
+        status=$?
+        [[ $status == 1 || $status == 130 ]] && exit 0
+        juno_notice critical 'Captura indisponível' 'Não foi possível selecionar a área da tela.'
+        exit 1
+    fi
+fi
+
+if [[ $mode == copy ]]; then
+    juno_require wl-copy
+    juno_prepare_runtime
+    capture_dir=$JUNO_RUNTIME_DIR
+else
+    pictures=
+    if command -v xdg-user-dir >/dev/null 2>&1; then
+        pictures=$(xdg-user-dir PICTURES) || pictures=
+    fi
+    [[ $pictures == /* ]] || pictures=$HOME/Pictures
+    capture_dir=$pictures/Juno
+    mkdir -p -- "$capture_dir"
+fi
+
+capture_file=$(mktemp --tmpdir="$capture_dir" --suffix=.png "Juno-$(date +%Y%m%d-%H%M%S)-XXXXXX")
+keep_file=false
+cleanup() { if [[ $keep_file != true ]]; then rm -f -- "$capture_file"; fi; }
+trap cleanup EXIT
+
+if [[ $mode == full ]]; then
+    capture_args=("$capture_file")
+else
+    capture_args=(-g "$geometry" "$capture_file")
+fi
+if ! grim "${capture_args[@]}" || [[ ! -s $capture_file ]]; then
+    juno_notice critical 'Captura não concluída' 'Não foi possível capturar a tela. Nenhum arquivo incompleto foi mantido.'
+    exit 1
+fi
+
+if [[ $mode == copy ]]; then
+    if ! wl-copy --type image/png < "$capture_file"; then
+        juno_notice critical 'Captura não copiada' 'A área foi capturada, mas a área de transferência está indisponível.'
+        exit 1
+    fi
+    juno_notice normal 'Captura copiada' 'A imagem está na área de transferência.'
+else
+    keep_file=true
+    printf '%s\n' "$capture_file"
+    juno_notice normal 'Captura salva' "$capture_file"
+fi

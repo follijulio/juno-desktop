@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/../lib/runtime.sh"
+action=${1:-}
+target=@DEFAULT_AUDIO_SINK@
+label=Volume
+case "$action" in
+    up) args=(set-volume -l 1 "$target" 5%+) ;;
+    down) args=(set-volume "$target" 5%-) ;;
+    mute) args=(set-mute "$target" toggle) ;;
+    mic-mute) target=@DEFAULT_AUDIO_SOURCE@; label=Microfone; args=(set-mute "$target" toggle) ;;
+    *) printf 'Uso: audio {up|down|mute|mic-mute}\n' >&2; exit 2 ;;
+esac
+juno_require wpctl
+if ! wpctl "${args[@]}"; then
+    juno_notice normal 'Áudio indisponível' 'Não foi possível alterar o dispositivo de áudio. Verifique a conexão e o PipeWire.'
+    exit 1
+fi
+if status=$(LC_ALL=C wpctl get-volume "$target"); then
+    if [[ $status == *MUTED* ]]; then
+        message='Silenciado.'
+    else
+        percent=$(awk '{ printf "%.0f", $2 * 100 }' <<< "$status")
+        message="$percent%."
+    fi
+    juno_notice normal "$label" "$message"
+fi

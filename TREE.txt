@@ -1,0 +1,83 @@
+juno-desktop/
+|-- assets/
+|   |-- desktop/
+|   |   `-- wallpapers/
+|   |       |-- SHA256SUMS
+|   |       |-- juno-paper.png
+|   |       `-- juno-paper.svg
+|   `-- fonts/
+|       `-- spacemono/
+|           |-- OFL.txt
+|           |-- SHA256SUMS
+|           |-- SpaceMono-Bold.ttf
+|           |-- SpaceMono-BoldItalic.ttf
+|           |-- SpaceMono-Italic.ttf
+|           |-- SpaceMono-Regular.ttf
+|           `-- source.json
+|-- config/
+|   |-- hypr/
+|   |   |-- conf/
+|   |   |   |-- appearance.lua
+|   |   |   |-- bindings.lua
+|   |   |   |-- input.lua
+|   |   |   |-- monitors.lua
+|   |   |   |-- session.lua
+|   |   |   `-- theme.lua
+|   |   |-- hypridle.conf
+|   |   |-- hyprland.lua
+|   |   `-- hyprlock.conf
+|   |-- juno/
+|   |   |-- bin/
+|   |   |   |-- audio
+|   |   |   |-- brightness
+|   |   |   |-- launcher
+|   |   |   |-- lock
+|   |   |   |-- power-menu
+|   |   |   |-- screenshot
+|   |   |   `-- session-start
+|   |   `-- lib/
+|   |       |-- runtime.sh
+|   |       `-- waybar.sh
+|   |-- kitty/
+|   |   `-- kitty.conf
+|   |-- mako/
+|   |   `-- config
+|   |-- rofi/
+|   |   |-- config.rasi
+|   |   `-- theme.rasi
+|   |-- waybar/
+|   |   |-- config.jsonc
+|   |   `-- style.css
+|   `-- xdg-desktop-portal/
+|       `-- hyprland-portals.conf
+|-- docs/
+|   |-- ARQUITETURA.md
+|   |-- IDENTIDADE-VISUAL.md
+|   |-- RESULTADOS.md
+|   `-- VALIDACAO.md
+|-- lib/
+|   |-- common.sh
+|   |-- packages.sh
+|   |-- preflight.sh
+|   |-- transaction.sh
+|   `-- validate.sh
+|-- tests/
+|   |-- brand_test.py
+|   |-- config.lua
+|   |-- installer.sh
+|   |-- integration.sh
+|   |-- native.sh
+|   |-- run.sh
+|   |-- runtime.sh
+|   |-- session.sh
+|   `-- transaction.sh
+|-- tools/
+|   |-- check_brand.py
+|   |-- generate_wallpaper.py
+|   `-- package.py
+|-- .gitattributes
+|-- .gitignore
+|-- .shellcheckrc
+|-- README.md
+|-- TREE.txt
+`-- install.sh

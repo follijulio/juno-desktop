@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/../lib/runtime.sh"
+[[ $# == 0 ]] || { printf 'Uso: power-menu\n' >&2; exit 2; }
+juno_require rofi
+juno_require_session
+
+menu() { rofi -config "$JUNO_CONFIG_HOME/rofi/config.rasi" -dmenu -i -no-custom -p "$1"; }
+if ! selection=$(printf 'Bloquear\nEncerrar sessão\nReiniciar\nDesligar\n' | menu 'Sessão'); then
+    exit 0
+fi
+case "$selection" in
+    Bloquear) exec bash -- "$SCRIPT_DIR/lock" ;;
+    'Encerrar sessão') action=logout; prompt='Encerrar a sessão agora?' ;;
+    Reiniciar) action=reboot; prompt='Reiniciar o computador agora?' ;;
+    Desligar) action=poweroff; prompt='Desligar o computador agora?' ;;
+    *) exit 0 ;;
+esac
+
+if ! confirmation=$(printf 'Cancelar\nConfirmar\n' | menu "$prompt"); then
+    exit 0
+fi
+[[ $confirmation == Confirmar ]] || exit 0
+
+# Never evaluate launcher output as shell code.
+case "$action" in
+    logout)
+        juno_require hyprctl
+        hyprctl dispatch 'hl.dsp.exit()' || { juno_notice critical 'Sessão mantida' 'Não foi possível encerrar a sessão.'; exit 1; }
+        ;;
+    reboot|poweroff)
+        juno_require systemctl
+        systemctl "$action" || { juno_notice critical 'Ação não concluída' 'O sistema recusou a solicitação. A sessão continua disponível.'; exit 1; }
+        ;;
+esac

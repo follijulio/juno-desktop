@@ -1,0 +1,15 @@
+configuration {
+    modi: "drun,run,window";
+    font: "Roboto 13";
+    show-icons: false;
+    drun-display-format: "{name}";
+    display-drun: "APLICATIVOS";
+    display-run: "COMANDO";
+    display-window: "JANELAS";
+    matching: "fuzzy";
+    sort: true;
+    sidebar-mode: false;
+    cycle: false;
+    disable-history: true;
+}
+@theme "theme.rasi"
