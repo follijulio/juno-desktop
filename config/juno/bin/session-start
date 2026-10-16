@@ -56,15 +56,14 @@ else
 fi
 
 start_once awww-daemon awww-daemon
-wallpaper=$JUNO_DATA_HOME/juno-desktop/wallpapers/juno-paper.png
 if command -v awww >/dev/null 2>&1; then
     wallpaper_ready=false
     for ((attempt = 0; attempt < 50; attempt++)); do
         if awww query >/dev/null 2>&1; then wallpaper_ready=true; break; fi
         sleep 0.1
     done
-    if [[ $wallpaper_ready == true && -r $wallpaper ]]; then
-        awww img --transition-type none "$wallpaper" || juno_notice normal 'Papel de parede indisponível' 'O fundo creme continua disponível; não foi possível carregar a imagem Juno.'
+    if [[ $wallpaper_ready == true ]]; then
+        bash -- "$SCRIPT_DIR/wallpaper" apply || juno_notice normal 'Papel de parede indisponível' 'Não foi possível aplicar a seleção salva. O fundo creme continua disponível.'
     else
         juno_notice normal 'Papel de parede indisponível' 'O daemon ou a imagem Juno não está disponível. O fundo creme continua ativo.'
     fi

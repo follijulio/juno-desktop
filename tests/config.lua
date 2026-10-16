@@ -56,4 +56,14 @@ assert(environment.JUNO_RUNTIME_BIN == fake_home .. "/.config/juno/bin")
 assert(type(events["hyprland.start"]) == "function")
 events["hyprland.start"]()
 assert(executions == 1)
+local first_path, first_data = environment.PATH, environment.XDG_DATA_DIRS
+os.getenv = function(name)
+    if name == "HOME" then return fake_home end
+    return environment[name]
+end
+events["hyprland.start"] = nil
+package.loaded["conf.session"] = nil
+require("conf.session")
+assert(environment.PATH == first_path and environment.XDG_DATA_DIRS == first_data,
+    "Recarregar a sessão não pode duplicar diretórios de aplicativos")
 print("Configuração Lua: módulos, atalhos, caminhos e autostart conferidos (stub; não substitui Hyprland).")

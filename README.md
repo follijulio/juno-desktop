@@ -46,12 +46,75 @@ Os utilitários básicos `sudo`, `curl`, `diffutils`, `tar`, `gzip`, `coreutils`
 
 O bloqueio ocorre após **5 minutos**; os monitores apagam após **10 minutos**. Suspensões solicitadas pelo sistema passam pela integração de bloqueio. O Juno não agenda suspensão automática.
 
+## Aplicativos e desenvolvimento
+
+O instalador também prepara os seguintes programas:
+
+| Grupo | Aplicativos e ferramentas |
+| --- | --- |
+| Uso diário | Firefox, Thunar, mpv e pavucontrol |
+| Entretenimento | Spotify, Steam e Discord |
+| Editor | **Visual Studio Code original da Microsoft**, estável, com Marketplace original |
+| Python | Python, pip, uv e ambientes virtuais |
+| JavaScript | Node.js e npm |
+| C e C++ | GCC, Make, Clang, CMake, Ninja, pkgconf, GDB e LLDB |
+| Go e Rust | Go, Rust e Cargo |
+| Desenvolvimento | Git, GitHub CLI, SQLite, ripgrep, fd, ShellCheck e shfmt |
+
+Steam habilita o repositório oficial `multilib` quando necessário, preservando `/etc/pacman.conf` em um backup identificado no log. O pacman pode pedir a escolha do driver Vulkan de **32 bits**: escolha o correspondente à sua GPU. O instalador não escolhe um driver de vídeo automaticamente nem habilita repositórios de teste.
+
+Discord e os demais pacotes usam os repositórios oficiais do Arch. Spotify é instalado por usuário via Flathub: o cliente vem do fornecedor, mas o empacotamento é comunitário, sem afirmar verificação pelo Spotify. Um remote `flathub` existente com outro endereço ou sem verificação de assinaturas é recusado. Para atualizar depois:
+
+```bash
+flatpak update --user
+```
+
+O VS Code é baixado diretamente da Microsoft, com versão estável, SHA-256 e identidade conferidos antes da ativação. Não instala o pacote `code` do Arch, Code-OSS ou VSCodium. Fica em `~/.local/share/juno-apps/vscode/`, com versões anteriores preservadas, comando `~/.local/bin/code` e entrada no launcher. Reexecutar o instalador atualiza a versão; launchers anteriores são preservados em `~/.local/state/juno-desktop/apps/backups/`.
+
+Na sessão Juno, `~/.local/bin` e os aplicativos Flatpak são incluídos nos caminhos da sessão. Em um TTY já aberto, use `~/.local/bin/code` ou atualize o PATH do seu shell. Não são instaladas extensões de editor, pacotes globais pip/npm, contas ou serviços de contêiner automaticamente.
+
+Para Python, use um ambiente isolado por projeto, preservando o Python do sistema:
+
+```bash
+uv venv
+source .venv/bin/activate
+uv pip install nome-do-pacote
+```
+
+Instalações de aplicativos, habilitação de multilib e seus dados ficam fora do rollback dos dotfiles. Falhas obrigatórias interrompem a aplicação da nova sessão, e os programas já instalados permanecem registrados.
+
+## Wallpapers e bloqueio
+
+A pasta `wallpapers/` fornecida foi integrada com **32 arquivos e 31 imagens únicas**. Os nomes foram organizados sem alterar pixels nem apagar a cópia duplicada. A paisagem **Ghibli · Vale tranquilo** é a seleção inicial.
+
+Use **Super + W** para escolher uma imagem. A preferência persiste entre sessões e acompanha o bloqueio, que agora tem cartão creme, moldura de 4 px, sombra sólida, faixa menta, relógio, data, usuário e campo de senha.
+
+```bash
+bash ~/.config/juno/bin/wallpaper list
+bash ~/.config/juno/bin/wallpaper set ghibli-vale
+```
+
+JPG, PNG e WebP são usados no desktop e no bloqueio. AVIF é oferecido no desktop; o bloqueio usa a imagem padrão JPG por compatibilidade com o decoder disponível no Arch. Se a galeria estiver indisponível, o bloqueio continua disponível sobre papel creme.
+
+Para adicionar imagens ao projeto, coloque arquivos com nomes minúsculos, sem espaços, em `wallpapers/`, gere novamente o catálogo e execute o instalador:
+
+```bash
+python3 tools/catalog_wallpapers.py
+bash install.sh
+```
+
+O catálogo e os checksums são verificados antes da aplicação. As fotografias/ilustrações fornecidas são uma exceção autorizada à paleta dos fundos; controles, painéis e tipografia preservam a identidade Netuno.
+
 ## Atalhos
 
 | Atalho | Ação |
 | --- | --- |
 | `Super + Enter` | Abrir Kitty |
+| `Super + E` | Abrir Thunar |
+| `Super + B` | Abrir Firefox |
+| `Super + C` | Abrir VS Code original |
 | `Super + D` | Abrir aplicativos |
+| `Super + W` | Escolher wallpaper |
 | `Super + Q` | Fechar a janela ativa |
 | `Super + F` | Alternar tela cheia |
 | `Super + V` | Alternar janela flutuante |
@@ -114,6 +177,8 @@ O pacote fica em `dist/juno-desktop.tar.gz`, acompanhado de `SHA256SUMS`. [Valid
 
 Space Mono acompanha os quatro arquivos originais, licença OFL, revisão imutável e checksums em `assets/fonts/spacemono/`. Roboto vem do pacote oficial `ttf-roboto`. Não é necessário instalar yay ou paru.
 
-O projeto usa `rofi` com Wayland e `awww`, os nomes atuais dos pacotes antes citados como rofi-wayland e swww. Não instala gerenciador de login, navegador, gerenciador de arquivos ou drivers de GPU. A rede é exibida sem substituir seu gerenciador de conexão.
+O projeto usa `rofi` com Wayland e `awww`, os nomes atuais dos pacotes antes citados como rofi-wayland e swww. Não instala gerenciador de login ou drivers de GPU. A rede é exibida sem substituir seu gerenciador de conexão.
 
 Referências: [identidade visual e aplicação do manual Netuno](docs/IDENTIDADE-VISUAL.md), [Hyprland](https://wiki.hypr.land/configuring/core/), [pacotes oficiais do Arch](https://archlinux.org/packages/), [Google Fonts — Space Mono](https://github.com/google/fonts/tree/main/ofl/spacemono). O projeto preserva o nome Juno Desktop, sem criar assinatura comercial conjunta.
+
+Fontes dos aplicativos: [distribuição Microsoft do VS Code](https://code.visualstudio.com/docs/setup/linux), [Spotify no Flathub](https://flathub.org/en/apps/com.spotify.Client) e [Steam no Arch](https://archlinux.org/packages/multilib/x86_64/steam/).

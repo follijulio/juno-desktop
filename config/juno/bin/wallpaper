@@ -72,5 +72,9 @@ if ! juno_wallpaper_remember "$selected"; then
     exit 1
 fi
 if [[ $action != apply ]]; then
-    juno_notice normal 'Papel de parede atualizado' 'A imagem também será usada na próxima tela de bloqueio.'
+    if [[ $image == *.avif ]]; then
+        juno_notice normal 'Papel de parede atualizado' 'No bloqueio será usada a imagem padrão da galeria.'
+    else
+        juno_notice normal 'Papel de parede atualizado' 'A imagem também será usada na próxima tela de bloqueio.'
+    fi
 fi

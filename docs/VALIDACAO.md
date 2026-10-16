@@ -22,6 +22,9 @@ Execute em um Arch de teste antes de usar como configuração principal:
 - Bloquear manualmente, aguardar 5/10 minutos, suspender pelo sistema e retomar. Confirmar que autenticação precede o retorno ao conteúdo.
 - Cancelar todas as confirmações do menu de sessão e verificar que nenhuma ação ocorre. Confirmar saída/reinício/desligamento somente quando apropriado.
 - Restaurar um backup após editar um arquivo; conferir retorno ao estado original e preservação das edições no backup recém-criado.
+- Conferir Steam, Discord, Spotify, Firefox e VS Code no launcher. Executar `code --version`, `python --version`, `node --version`, `gcc --version`, `go version` e `cargo --version` na sessão Juno. Confirmar nome Visual Studio Code e acesso ao Marketplace original.
+- Verificar multilib habilitado, backup do pacman e escolha correta do provider Vulkan de 32 bits. Validar instalação/atualização Flatpak sem alterar remotes de outro endereço.
+- Abrir `Super + W`, selecionar diferentes imagens, cancelar, reiniciar a sessão e bloquear. Conferir persistência e foto correta; escolher AVIF e confirmar fallback JPG no bloqueio. Galeria indisponível deve preservar o bloqueio com fundo creme.
 
 ## Estado da validação
 

@@ -145,6 +145,15 @@ run_expect 0 bash -- "$PROJECT_ROOT/config/juno/bin/lock"
 grep -Fx "    path = $gallery/second.png" "$STUB_LOCK_CONFIG" >/dev/null
 [[ ! -e $XDG_RUNTIME_DIR/juno-desktop/hyprlock-wallpaper-test.conf ]]
 
+printf 'avif-fixture\n' > "$gallery/third.avif"
+jq '.wallpapers += [{"id":"third","name":"Imagem AVIF","file":"third.avif"}]' "$TEST_SANDBOX/catalog.json" > "$gallery/catalog.json"
+run_expect 0 wallpaper set third
+[[ $(< "$state") == third ]]
+run_expect 0 bash -- "$PROJECT_ROOT/config/juno/bin/lock"
+grep -Fx "    path = $gallery/first.jpg" "$STUB_LOCK_CONFIG" >/dev/null
+cp -- "$TEST_SANDBOX/catalog.json" "$gallery/catalog.json"
+printf 'second\n' > "$state"
+
 rm -f -- "$gallery/second.png"
 run_expect 0 bash -- "$PROJECT_ROOT/config/juno/bin/lock"
 grep -Fx "    path = $gallery/first.jpg" "$STUB_LOCK_CONFIG" >/dev/null

@@ -183,6 +183,7 @@ juno_install_vscode() (
     [[ ! -L "$JUNO_HOME/.local/share/juno-apps/vscode" && ! -L "$app/releases" ]] || {
         _vscode_error 'O diretório do VS Code e releases precisam ser diretórios reais.'; return 1;
     }
+    chmod 700 -- "$app" "$app/releases" || return 1
     if [[ -e "$app/current" || -L "$app/current" ]]; then
         [[ -L "$app/current" ]] || { _vscode_error 'current precisa ser um link gerenciado pelo Juno.'; return 1; }
         current_target=$(readlink -- "$app/current") || return 1

@@ -28,9 +28,16 @@ if command -v jq >/dev/null 2>&1 && command -v realpath >/dev/null 2>&1 && juno_
     if selected=$(juno_wallpaper_current); then
         wallpaper=$(juno_wallpaper_file "$selected") || wallpaper=''
     fi
+    # Arch's hyprgraphics currently lacks the optional AVIF decoder, although
+    # awww supports it. Keep locking independent of that image codec.
+    if [[ $wallpaper == *.avif ]]; then
+        selected=$(jq -er '.default' "$JUNO_WALLPAPER_CATALOG") || selected=''
+        wallpaper=$(juno_wallpaper_file "$selected") || wallpaper=''
+        [[ $wallpaper != *.avif ]] || wallpaper=''
+    fi
 fi
 case "$wallpaper" in
-    *'$'*|*'#'*|*'{'*|*'}'*|*'='*|*'\'*|*$'\n'*|*$'\r'*) wallpaper='' ;;
+    *'$'*|*'#'*|*'{'*|*'}'*|*'='*|*\\*|*$'\n'*|*$'\r'*) wallpaper='' ;;
 esac
 if [[ ! -f $template || ! -r $template ]]; then
     juno_notice critical 'Bloqueio não iniciado' 'A configuração do bloqueio não está disponível. A tela não foi bloqueada.'

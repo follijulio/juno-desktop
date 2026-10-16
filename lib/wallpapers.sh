@@ -14,6 +14,8 @@ juno_stage_gallery() {
     [[ -d $desktop_stage/wallpapers && ! -e $desktop_stage/wallpapers/gallery ]] ||
         juno_die 'O destino preparado da galeria é inválido.'
     cp -a -- "$JUNO_ROOT/wallpapers" "$desktop_stage/wallpapers/gallery"
+    (cd -- "$desktop_stage/wallpapers/gallery" && sha256sum --check --strict SHA256SUMS) ||
+        juno_die 'A cópia preparada da galeria não passou na verificação de integridade.'
     jq -e '
         .version == 1 and (.default | type == "string") and
         (.wallpapers | type == "array" and length > 0) and

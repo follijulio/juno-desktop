@@ -34,9 +34,11 @@ juno-desktop/
 |   |   |   |-- lock
 |   |   |   |-- power-menu
 |   |   |   |-- screenshot
-|   |   |   `-- session-start
+|   |   |   |-- session-start
+|   |   |   `-- wallpaper
 |   |   `-- lib/
 |   |       |-- runtime.sh
+|   |       |-- wallpaper.sh
 |   |       `-- waybar.sh
 |   |-- kitty/
 |   |   `-- kitty.conf
@@ -56,25 +58,69 @@ juno-desktop/
 |   |-- RESULTADOS.md
 |   `-- VALIDACAO.md
 |-- lib/
+|   |-- applications.sh
 |   |-- common.sh
+|   |-- multilib.sh
 |   |-- packages.sh
 |   |-- preflight.sh
 |   |-- transaction.sh
-|   `-- validate.sh
+|   |-- validate.sh
+|   |-- vscode.sh
+|   `-- wallpapers.sh
 |-- tests/
+|   |-- applications.sh
 |   |-- brand_test.py
 |   |-- config.lua
 |   |-- installer.sh
 |   |-- integration.sh
+|   |-- multilib.sh
 |   |-- native.sh
 |   |-- run.sh
 |   |-- runtime.sh
 |   |-- session.sh
-|   `-- transaction.sh
+|   |-- transaction.sh
+|   |-- vscode.sh
+|   `-- wallpaper.sh
 |-- tools/
+|   |-- catalog_wallpapers.py
 |   |-- check_brand.py
 |   |-- generate_wallpaper.py
 |   `-- package.py
+|-- wallpapers/
+|   |-- SHA256SUMS
+|   |-- abstrato-azul.avif
+|   |-- armadura-em-combate.jpg
+|   |-- buraco-negro-luz.jpg
+|   |-- buraco-negro-orbita.jpg
+|   |-- buraco-negro-roxo.jpg
+|   |-- buraco-negro-roxo.webp
+|   |-- castelo-ambulante.png
+|   |-- catalog.json
+|   |-- che-guevara.png
+|   |-- chihiro-na-chuva.png
+|   |-- folhas-azuis.avif
+|   |-- frieren-editorial.jpg
+|   |-- gato-espiral.jpg
+|   |-- gato-vermelho.png
+|   |-- ghibli-girassois.png
+|   |-- ghibli-ilha.jpg
+|   |-- ghibli-jardim.jpg
+|   |-- ghibli-lago.jpeg
+|   |-- ghibli-pintora.jpeg
+|   |-- ghibli-reflexo.jpg
+|   |-- ghibli-ruinas.jpg
+|   |-- ghibli-vale-copia.jpg
+|   |-- ghibli-vale.jpg
+|   |-- lenin.png
+|   |-- mecha-no-horizonte.jpg
+|   |-- ondas-azuis.jpg
+|   |-- rdr-acampamento.png
+|   |-- rdr-cavaleiro.png
+|   |-- rdr-montanhas.png
+|   |-- rdr-retrato.png
+|   |-- snoopy.png
+|   |-- socrates-campo.jpg
+|   `-- socrates-vitoria.jpg
 |-- .gitattributes
 |-- .gitignore
 |-- .shellcheckrc

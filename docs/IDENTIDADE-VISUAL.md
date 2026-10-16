@@ -22,4 +22,6 @@ O foco e a seleção usam cor contrastante e rótulos persistentes. Texto pequen
 
 O wallpaper original tem microtextura creme/bege e uma ficha geométrica no canto inferior direito. A fonte SVG, o PNG indexado e seus checksums são reproduzidos por `tools/generate_wallpaper.py`; não dependem de download durante a instalação.
 
+A galeria fornecida pelo usuário também está disponível, com Ghibli · Vale tranquilo como padrão. Imagens mantêm seus pixels e suas cores originais; essa exceção aplica-se aos fundos fotográficos e ilustrados. Os controles continuam restritos à paleta. O bloqueio usa um cartão creme opaco de 520 × 500, contorno de 4 px, sombra sólida de 8 px e faixa menta. Relógio/data usam Space Mono; identificação, senha e mensagens usam Roboto. Fotografias ficam atrás dos painéis, sem blur ou sobreposições translúcidas.
+
 Mensagens são curtas, em português brasileiro, identificando a ação, o resultado e a recuperação disponível. A interface evita animações e preserva contraste sem depender de cor como único sinal.

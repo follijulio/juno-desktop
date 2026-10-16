@@ -35,6 +35,28 @@ source "$TEST_REPO/lib/common.sh"
 source "$TEST_REPO/lib/transaction.sh"
 source "$TEST_REPO/lib/vscode.sh"
 
+# MSYS skips conversion of paths containing an apostrophe for native binaries.
+# Translate only file arguments in this test harness, preserving literal jq
+# filters and testing the Linux installer's shell quoting without alteration.
+if [[ $(uname -s) == MINGW* || $(uname -s) == MSYS* ]]; then
+    TEST_REAL_JQ=$(command -v jq)
+    TEST_REAL_PYTHON=$(command -v python3)
+    _test_native() {
+        local executable=$1 argument
+        shift
+        local -a arguments=()
+        for argument in "$@"; do
+            if [[ $argument == /* && -d $(dirname -- "$argument") ]]; then
+                argument=$(cygpath -m -- "$argument")
+            fi
+            arguments+=("$argument")
+        done
+        MSYS2_ARG_CONV_EXCL='*' "$executable" "${arguments[@]}"
+    }
+    jq() { _test_native "$TEST_REAL_JQ" "$@"; }
+    python3() { _test_native "$TEST_REAL_PYTHON" "$@"; }
+fi
+
 # Git Bash cannot create genuine symlinks on this Windows host. Keep the actual
 # activation implementation on Linux; Windows checks all downloads, validation,
 # release retention and launcher behavior with only activation mocked.
@@ -245,9 +267,11 @@ test_wrapper_quotes() {
         mkdir -- "$(app_path)/current"
         cp -r -- "$(app_path)/releases/$TEST_COMMIT/bin" "$(app_path)/current/bin"
     fi
+    # shellcheck disable=SC2016
     "$JUNO_HOME/.local/bin/code" 'a b' "O'Neil" '$(touch /never)' '%F'
     local -a arguments=()
     mapfile -d '' -t arguments <"$TEST_CODE_ARGS"
+    # shellcheck disable=SC2016
     [[ ${#arguments[@]} == 4 && ${arguments[0]} == 'a b' && ${arguments[1]} == "O'Neil" && ${arguments[2]} == '$(touch /never)' && ${arguments[3]} == '%F' ]] || fail 'wrapper não preservou os argumentos'
     local exec_line
     exec_line=$(sed -n 's/^Exec=//p' "$JUNO_HOME/.local/share/applications/juno-vscode.desktop")

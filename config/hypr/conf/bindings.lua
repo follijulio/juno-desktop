@@ -6,6 +6,9 @@ local function command(key, name, argument, options)
 end
 
 hl.bind(mod .. " + Return", hl.dsp.exec_cmd("kitty"))
+hl.bind(mod .. " + E", hl.dsp.exec_cmd("thunar"))
+hl.bind(mod .. " + B", hl.dsp.exec_cmd("firefox"))
+hl.bind(mod .. " + C", hl.dsp.exec_cmd("code"))
 hl.bind(mod .. " + Q", hl.dsp.window.close())
 hl.bind(mod .. " + F", hl.dsp.window.fullscreen())
 hl.bind(mod .. " + V", hl.dsp.window.float({ action = "toggle" }))

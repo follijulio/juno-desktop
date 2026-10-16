@@ -24,6 +24,7 @@ mkdir -p "$HOME" "$XDG_RUNTIME_DIR" "$TEST_ROOT/bin" "$XDG_DATA_HOME/juno-deskto
 chmod 700 "$XDG_RUNTIME_DIR"
 cp -R "$ROOT/config" "$XDG_CONFIG_HOME"
 cp "$ROOT/assets/desktop/wallpapers/juno-paper.png" "$XDG_DATA_HOME/juno-desktop/wallpapers/juno-paper.png"
+cp -R "$ROOT/wallpapers" "$XDG_DATA_HOME/juno-desktop/wallpapers/gallery"
 cat > "$TEST_ROOT/stub" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -59,6 +60,7 @@ grep -q 'nohup <mako>' "$STUB_LOG"
 grep -q 'nohup <waybar>' "$STUB_LOG"
 grep -q 'nohup <awww-daemon>' "$STUB_LOG"
 grep -q 'nohup <hypridle>' "$STUB_LOG"
+grep -q 'awww <img> <--transition-type> <none>' "$STUB_LOG"
 jq -e . "$XDG_RUNTIME_DIR/juno-desktop/waybar-test-session.json" >/dev/null
 printf 'OK: inicialização coordena D-Bus, áudio, autenticação e componentes\n'
 
