@@ -17,17 +17,17 @@ juno_define_targets() {
     # Contrato compartilhado com transaction.sh e validate.sh.
     # shellcheck disable=SC2034
     JUNO_TARGETS=(
-        .config/hypr .config/waybar .config/rofi .config/mako .config/kitty
-        .config/juno .config/xdg-desktop-portal .local/share/fonts/juno
-        .local/share/juno-desktop
+        .config/kitty .config/juno-gnome .local/share/fonts/juno
+        .local/share/juno-desktop .bashrc .config/Code/User/settings.json
+        .config/environment.d/90-juno.conf
     )
     # shellcheck disable=SC2034
     JUNO_SOURCES=(
-        "$JUNO_ROOT/config/hypr" "$JUNO_ROOT/config/waybar"
-        "$JUNO_ROOT/config/rofi" "$JUNO_ROOT/config/mako"
-        "$JUNO_ROOT/config/kitty" "$JUNO_ROOT/config/juno"
-        "$JUNO_ROOT/config/xdg-desktop-portal" "$JUNO_ROOT/assets/fonts/spacemono"
-        "$JUNO_ROOT/assets/desktop"
+        "$JUNO_ROOT/config/kitty" "$JUNO_ROOT/config/juno-gnome"
+        "$JUNO_ROOT/assets/fonts/spacemono" "$JUNO_ROOT/assets/desktop"
+        "$JUNO_ROOT/config/juno-gnome/templates/bashrc"
+        "$JUNO_ROOT/config/juno-gnome/templates/settings.json"
+        "$JUNO_ROOT/config/environment.d/90-juno.conf"
     )
 }
 

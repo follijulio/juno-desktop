@@ -31,6 +31,9 @@ juno_preflight_base
 juno_define_targets
 case "$1" in
     pending)
+        # A v1 Hyprland journal must recover even with the GNOME installer.
+        JUNO_TARGETS=(.config/hypr .config/waybar .config/rofi .config/mako .config/kitty .config/juno .config/xdg-desktop-portal .local/share/fonts/juno .local/share/juno-desktop)
+        JUNO_SOURCES=("$ROOT/config/hypr" "$ROOT/config/waybar" "$ROOT/config/rofi" "$ROOT/config/mako" "$ROOT/config/kitty" "$ROOT/config/juno" "$ROOT/config/xdg-desktop-portal" "$ROOT/assets/fonts/spacemono" "$ROOT/assets/desktop")
         txn_lock
         for target in "${JUNO_TARGETS[@]}"; do
             mkdir -p "$JUNO_HOME/$target"
