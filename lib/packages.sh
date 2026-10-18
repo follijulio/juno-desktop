@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 
 JUNO_PACKAGES=(
-    hyprland waybar rofi mako kitty awww ttf-roboto fontconfig jq libnotify
-    grim slurp wl-clipboard brightnessctl hyprlock hypridle hyprpolkitagent
+    gnome-shell gnome-session gnome-settings-daemon gnome-control-center gdm
+    nautilus gnome-keyring gsettings-desktop-schemas dconf python-gobject
+    kitty ttf-roboto ttf-jetbrains-mono ttf-jetbrains-mono-nerd fontconfig jq libnotify
     pipewire pipewire-audio pipewire-pulse wireplumber
-    xdg-desktop-portal xdg-desktop-portal-hyprland xdg-desktop-portal-gtk
+    xdg-desktop-portal xdg-desktop-portal-gnome xdg-desktop-portal-gtk
     xdg-user-dirs qt6-wayland curl diffutils procps-ng dbus
-    firefox thunar mpv pavucontrol zip unzip flatpak steam discord
+    firefox mpv pavucontrol zip unzip flatpak steam discord
     base-devel git github-cli python python-pip uv nodejs npm go rust
     clang cmake ninja gdb lldb pkgconf ripgrep fd sqlite shellcheck shfmt
     nss alsa-lib libxkbfile libsecret gtk3 libxss libxrandr lsof desktop-file-utils
@@ -32,7 +33,7 @@ juno_install_packages() {
         pacman -Q > "$snapshot_dir/$snapshot_id.after.txt" || true
         juno_die "O pacman falhou (código $status). Nenhum dotfile foi substituído. Registro: $snapshot_dir/$snapshot_id.after.txt"
     fi
-    juno_require Hyprland fc-cache fc-match fc-scan jq
+    juno_require gnome-shell gsettings dbus-run-session python3 fc-cache fc-match fc-scan jq diff cmp
     for package in "${JUNO_PACKAGES[@]}"; do
         pacman -Q "$package" >/dev/null 2>&1 || juno_die "Dependência obrigatória ausente após a instalação: $package."
     done

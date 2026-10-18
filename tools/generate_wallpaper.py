@@ -59,6 +59,51 @@ def png(shapes: list[tuple[int, int, int, int, int]]) -> bytes:
             + chunk(b"IEND", b""))
 
 
+def png_content(data: bytes) -> tuple[bytes, bytes, bytes]:
+    """Compare estrutura e pixels; a compressão varia entre builds de zlib."""
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise ValueError("Assinatura PNG inválida")
+    offset, header, palette, compressed = 8, b"", b"", bytearray()
+    kinds: list[bytes] = []
+    while offset < len(data):
+        if offset + 12 > len(data):
+            raise ValueError("Chunk PNG incompleto")
+        size = struct.unpack_from(">I", data, offset)[0]
+        end = offset + size + 12
+        if end > len(data):
+            raise ValueError("Chunk PNG truncado")
+        kind = data[offset + 4:offset + 8]
+        payload = data[offset + 8:end - 4]
+        expected_crc = struct.unpack_from(">I", data, end - 4)[0]
+        if zlib.crc32(kind + payload) & 0xFFFFFFFF != expected_crc:
+            raise ValueError("CRC PNG inválido")
+        kinds.append(kind)
+        if kind == b"IHDR":
+            header = payload
+        elif kind == b"PLTE":
+            palette = payload
+        elif kind == b"IDAT":
+            compressed.extend(payload)
+        elif kind == b"IEND":
+            if payload or end != len(data):
+                raise ValueError("Final PNG inválido")
+        else:
+            raise ValueError(f"Chunk PNG inesperado: {kind!r}")
+        offset = end
+    if (len(kinds) < 4 or kinds[:2] != [b"IHDR", b"PLTE"] or
+            kinds[-1:] != [b"IEND"] or any(kind != b"IDAT" for kind in kinds[2:-1])):
+        raise ValueError("Estrutura PNG inválida")
+    expected_header = struct.pack(">IIBBBBB", WIDTH, HEIGHT, 8, 3, 0, 0, 0)
+    if header != expected_header:
+        raise ValueError("Formato PNG inesperado")
+    decoder = zlib.decompressobj()
+    rows = decoder.decompress(compressed, HEIGHT * (WIDTH + 1) + 1)
+    if (not decoder.eof or decoder.unused_data or decoder.unconsumed_tail or
+            len(rows) != HEIGHT * (WIDTH + 1)):
+        raise ValueError("Pixels PNG inválidos")
+    return header, palette, rows
+
+
 def svg(shapes: list[tuple[int, int, int, int, int]]) -> str:
     lines = [
         '<?xml version="1.0" encoding="UTF-8"?>',
@@ -83,9 +128,14 @@ def main() -> None:
     outputs = {"juno-paper.png": png(shapes), "juno-paper.svg": svg(shapes).encode("utf-8")}
     if args.check:
         for name, content in outputs.items():
-            if (destination / name).read_bytes() != content:
+            existing = (destination / name).read_bytes()
+            if name.endswith(".png"):
+                matches = png_content(existing) == png_content(content)
+            else:
+                matches = existing == content
+            if not matches:
                 raise SystemExit(f"Wallpaper desatualizado: {name}")
-        print("Wallpaper reproduzível: PNG e SVG conferem com o gerador.")
+        print("Wallpaper conferido: estrutura e pixels PNG e conteúdo SVG correspondem ao gerador.")
         return
     destination.mkdir(parents=True, exist_ok=True)
     for name, content in outputs.items():

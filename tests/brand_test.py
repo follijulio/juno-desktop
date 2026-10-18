@@ -55,7 +55,9 @@ class BrandValidationTests(unittest.TestCase):
     def test_unapproved_font_is_rejected(self) -> None:
         self.assertTrue(self.errors_for('font-family: "Inter";'))
         self.assertTrue(self.errors_for("font_family Noto Sans"))
-        self.assertEqual(self.errors_for("font_family Space Mono\nfont=Roboto 12"), [])
+        self.assertTrue(self.errors_for("font_family Space Mono"))
+        self.assertTrue(self.errors_for("font_family RobotoImpostor"))
+        self.assertEqual(self.errors_for("font_family JetBrainsMono Nerd Font Mono\nfont=Roboto 11"), [])
 
     def test_vendored_resources_have_valid_checksums(self) -> None:
         errors: list[str] = []

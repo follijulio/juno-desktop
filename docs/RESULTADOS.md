@@ -1,45 +1,28 @@
-# Resultados de validação — 15/10/2026
+# Resultados de valida??o ? 17/10/2026
 
-Ambiente: Windows, Git Bash 5.3.15, Python 3.14.5, ShellCheck 0.11.0 e jq 1.8.2. Ferramentas auxiliares de QA estão em `.cache/`, fora da distribuição; a sessão instalada não depende delas.
+Ambiente desta migra??o: Windows, PowerShell, Git Bash e Python 3.15. N?o h? WSL ou sess?o GNOME/Arch dispon?vel. Nenhum pacote Linux foi instalado neste Windows.
 
-## Executado
+## Baseline e corre??es
 
-| Verificação | Resultado |
+A inspe??o inicial encontrou 32 arquivos Bash e 9 testes Python de marca. Nos testes anteriores informados nesta revis?o, transa??es tinham 18 cen?rios aprovados, multilib 14 e aplicativos 5; esses resultados pertencem ? baseline e n?o certificam a implementa??o GNOME.
+
+`python -B tools/generate_wallpaper.py --check` falhava originalmente. O PNG distribu?do e o gerado possu?am pixels id?nticos, mas bytes IDAT diferentes por causa de zlib-ng. A verifica??o passou a comparar estrutura e pixels PNG e conte?do SVG, preservando o arquivo e seu checksum.
+
+O empacotamento agora prepara o arquivo e SHA-256 em tempor?rios, recusa links simb?licos e preserva o pacote anterior em falhas de prepara??o ou publica??o do checksum. Os execut?veis GNOME recebem modo POSIX execut?vel.
+
+## Executado nesta migra??o
+
+| Comando/verifica??o | Resultado |
 | --- | --- |
-| Sintaxe Bash de instalador, bibliotecas, scripts e testes | Aprovada |
-| ShellCheck de todos os arquivos Bash | Aprovado, sem diagnósticos |
-| Conformidade de paleta, fontes, raios, opacidade e sombras | Aprovada |
-| Fontes originais, licenças, revisão e checksums | Aprovados |
-| Reprodução exata do PNG/SVG pelo gerador | Aprovada |
-| Catálogo de 32 arquivos/31 imagens únicas, sem alteração dos pixels | Aprovado |
-| Testes de marca e corrupção de recursos | 9 passaram |
-| Testes de instalador e dependências | 9 passaram |
-| Integração: simulação sem gravação e recuperação antes de falha de rede | 2 passaram |
-| Transações: backup, aplicação, falhas, rollback e diário | 18 passaram; 6 casos dependentes de links POSIX foram ignorados |
-| Scripts de captura, bloqueio, energia, áudio e brilho | 18 passaram |
-| Derivação real de módulos Waybar e inicialização com serviços simulados | 5 passaram |
-| Habilitação e validação de multilib | 14 cenários passaram; uma verificação adicional de links aguarda Linux |
-| Spotify/Flathub, origem, assinatura e falhas | 5 passaram |
-| VS Code original: instalação, atualização, integridade, identidade e arquivos | 14 passaram; ancestral com link externo aguarda Linux |
-| Galeria, persistência, cancelamento e bloqueio com fallback | 19 passaram; 2 verificações de links aguardam Linux |
-| Arquivo real Microsoft VS Code 1.142.0 | SHA-256, estrutura, executáveis, identidade e versão conferidos; sem executar binários |
-| Carregamento Lua com Fengari 0.1.0 e API simulada | Aprovado |
-| Distribuição: arquivos, checksum, modos executáveis e finais de linha | Aprovada |
+| `python -B tools/generate_wallpaper.py --check` | Aprovado ap?s corre??o; assets preservados |
+| `python -B tools/catalog_wallpapers.py --check` | 32 arquivos, 31 imagens ?nicas; aprovado |
+| `python -B -m unittest discover -s tests -p '*_test.py'` | 17 cen?rios: 16 aprovados, 1 ignorado por indisponibilidade de symlinks no Windows |
+| Novos testes tooling | Compress?o PNG alternativa, corrup??o/truncamento, pixels alterados, LF/permiss?es, pacote reproduz?vel, falha de leitura, falha de publica??o de SHA e exclus?o de metadados |
 
-Total: **113 cenários automatizados aprovados**, além das verificações de sintaxe, identidade, Lua, pacote real Microsoft e distribuição. Os testes incluem caminhos com espaços e aspas, cancelamento, comandos injetados como texto, falhas de pacman/Flatpak/download, recursos corrompidos, pacotes Code-OSS recusados, falhas de renomeação, recuperação ambígua e preservação de edições em restaurações.
+Os demais resultados da su?te integrada devem ser conferidos ap?s a conclus?o dos m?dulos GNOME e do instalador. Este registro n?o apresenta os testes Hyprland antigos como valida??o do GNOME.
 
-Comando agregado usado:
+## Pendente no ambiente nativo
 
-```bash
-bash tests/run.sh
-```
+N?o foram executados GDM, GNOME Shell, PAM, systemd, portais, hardware, parsers/fontes reais do Kitty ou aceita??o gr?fica. Links POSIX, concorr?ncia real de `flock` e persist?ncia `sync -f` tamb?m exigem Linux.
 
-O teste Lua carrega todos os módulos, confere atalhos e argumentos com aspas e confirma que carregar a configuração não dispara autostart. Ele usa uma API simulada e não equivale ao parser real do Hyprland.
-
-## Pendente de ambiente nativo
-
-Não há WSL, Hyprland ou sessão Arch neste computador. **Não foram executados** o parser real do compositor, os parsers gráficos de GTK/Rofi/Mako/Kitty/Hyprlock, concorrência real de `flock`, persistência real de `sync -f`, os casos dependentes de links POSIX ou aceitação com hardware. A ativação do link da versão do VS Code é simulada no Windows; suas demais verificações de download e extração usam arquivos reais de fixture.
-
-Os comandos `flock` e `sync` são simulados nos testes de transação. Processos gráficos, PAM, D-Bus e serviços systemd são simulados nos testes de runtime. Pacman, Flatpak e downloads usam mocks nos testes de instalação; uma verificação adicional baixou e conferiu o pacote real da Microsoft, sem instalá-lo. Portanto, os resultados locais não certificam jogos, aplicativos, bloqueio, áudio, portais ou aparência em uma sessão real.
-
-Execute `bash tests/native.sh` no Arch e complete [o roteiro de aceitação](VALIDACAO.md) antes de considerar a sessão homologada. Nenhum pacote Linux foi instalado neste Windows, e nenhum dos outros projetos do workspace foi modificado.
+Execute `bash tests/native.sh` no Arch e complete [o roteiro de aceita??o](VALIDACAO.md). Downloads e comandos simulados nos testes locais n?o certificam aplicativos, jogos, captura, bloqueio, ?udio, imagem AVIF ou suspens?o em uma sess?o real.

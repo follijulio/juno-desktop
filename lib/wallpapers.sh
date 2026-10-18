@@ -10,7 +10,8 @@ juno_validate_gallery() {
 }
 
 juno_stage_gallery() {
-    local desktop_stage=${JUNO_STAGES[8]}
+    local desktop_stage
+    desktop_stage=$(txn_stage_for '.local/share/juno-desktop') || return 1
     [[ -d $desktop_stage/wallpapers && ! -e $desktop_stage/wallpapers/gallery ]] ||
         juno_die 'O destino preparado da galeria é inválido.'
     cp -a -- "$JUNO_ROOT/wallpapers" "$desktop_stage/wallpapers/gallery"

@@ -4,7 +4,7 @@ set -E
 
 JUNO_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 readonly JUNO_ROOT
-for module in common preflight packages validate transaction multilib applications vscode wallpapers; do
+for module in common preflight packages validate transaction multilib applications vscode wallpapers gnome posh shell; do
     # shellcheck source=/dev/null
     source "$JUNO_ROOT/lib/$module.sh"
 done
@@ -73,6 +73,9 @@ juno_main() {
     trap 'juno_on_failure 130 interrompido' INT
     trap 'juno_on_failure 143 terminado' TERM
     juno_begin_log
+    if [[ $operation == rollback || -e $JUNO_STATE/pending.tsv || -L $JUNO_STATE/pending.tsv ]]; then
+        juno_preflight_transaction
+    fi
     txn_recover
 
     if [[ $operation == rollback ]]; then
@@ -81,18 +84,26 @@ juno_main() {
             fc-cache -fv
         fi
         txn_finalize
-        juno_log 'Backup restaurado. Reinicie sua sessão do Hyprland para aplicar as alterações.'
+        juno_log 'Backup restaurado. Entre novamente na sessão gráfica para aplicar as alterações.'
         exit 0
     fi
+
+    # A legacy recovery uses its own manifest destinations. Restore the new
+    # installation contract only after that recovery has completed.
+    juno_define_targets
+    JUNO_GSETTINGS_ENABLED=0
 
     juno_preflight_install apply
     juno_validate_resources
     juno_validate_gallery
     juno_install_packages
-    juno_validate_hyprland_version
+    juno_validate_gnome
     juno_install_applications
+    juno_install_posh
+    JUNO_GSETTINGS_ENABLED=1
     txn_prepare
     juno_stage_gallery
+    juno_stage_terminal
     juno_validate_staged
     if txn_changed; then
         txn_backup
@@ -106,7 +117,8 @@ juno_main() {
         txn_cleanup_stage
         juno_log 'As configurações Juno já estão atualizadas. Nenhum backup adicional foi criado.'
     fi
-    juno_log 'Ambiente Juno configurado com sucesso. Reinicie sua sessão do Hyprland para aplicar as alterações.'
+    juno_configure_gdm
+    juno_log 'Ambiente Juno configurado com sucesso. Reinicie e selecione GNOME no gerenciador de login.'
 }
 
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then

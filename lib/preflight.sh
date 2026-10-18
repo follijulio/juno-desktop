@@ -5,7 +5,8 @@ juno_preflight_base() {
         juno_die 'Este instalador exige Arch Linux. Nenhuma configuração foi aplicada.'
     [[ $(uname -m) == x86_64 ]] || juno_die 'Arquitetura suportada: x86_64.'
     (( EUID != 0 )) || juno_die 'Execute como usuário comum. O instalador solicitará sudo para os pacotes.'
-    juno_require id getent realpath stat find tar gzip sha256sum diff flock date mktemp cp mv rm chmod df awk sort readlink tee cat cmp sync
+    # diffutils is installed by pacman; a fresh Arch does not have it yet.
+    juno_require id getent realpath stat find tar gzip sha256sum flock date mktemp cp mv rm chmod df awk sort readlink tee cat sync
     local actual_user account_home resolved_home parent resolved_parent owner xdg_value expected mode os_id
     os_id=$(awk -F= '$1 == "ID" {gsub(/"/, "", $2); print $2; exit}' /etc/os-release)
     [[ $os_id == arch ]] || juno_die 'Somente Arch Linux oficial é suportado; distribuições derivadas não foram validadas.'
@@ -49,24 +50,51 @@ juno_preflight_base() {
     done
 }
 
-juno_has_hyprland_session() {
-    local proc command_name owner
-    [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && return 0
+juno_has_graphical_session() {
+    local sessions session uid session_type session_state proc command_name owner properties
+    [[ -n ${WAYLAND_DISPLAY:-} || -n ${DISPLAY:-} || -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && return 0
+    if command -v loginctl >/dev/null 2>&1; then
+        sessions=$(loginctl list-sessions --no-legend --no-pager 2>/dev/null) || return 2
+        while read -r session uid _; do
+            [[ -n $session && $uid == "$EUID" ]] || continue
+            properties=$(loginctl show-session "$session" --property=Type --property=State --no-pager 2>/dev/null) || return 2
+            session_type=''; session_state=''
+            while IFS='=' read -r command_name owner; do
+                case $command_name in Type) session_type=$owner ;; State) session_state=$owner ;; esac
+            done <<< "$properties"
+            # An inactive graphical session on another VT is still logged in.
+            if [[ $session_type == wayland || $session_type == x11 ]]; then
+                [[ $session_state == closing ]] || return 0
+            fi
+        done <<< "$sessions"
+    fi
+    # Also detect manually started compositors not registered with logind.
     for proc in /proc/[0-9]*; do
         [[ -r $proc/comm && -r $proc/status ]] || continue
         command_name=$(cat "$proc/comm" 2>/dev/null) || continue
-        [[ $command_name == Hyprland ]] || continue
+        case $command_name in Hyprland|gnome-shell|kwin_wayland|kwin_x11|sway|Xorg|Xwayland) ;; *) continue ;; esac
         owner=$(awk '/^Uid:/ {print $2; exit}' "$proc/status" 2>/dev/null) || continue
         [[ $owner == "$EUID" ]] && return 0
     done
     return 1
 }
 
+# Kept for old callers while the installer transitions to the generic check.
+juno_has_hyprland_session() { juno_has_graphical_session; }
+
+juno_preflight_transaction() {
+    juno_require diff cmp
+}
+
 juno_preflight_terminal() {
-        [[ -t 0 ]] || juno_die 'Execute a aplicação em um terminal de texto interativo (TTY).'
-        if [[ -n ${WAYLAND_DISPLAY:-} || -n ${DISPLAY:-} ]] || juno_has_hyprland_session; then
-            juno_die 'Saia da sessão gráfica antes de aplicar ou restaurar. Entre em um TTY e execute novamente.'
-        fi
+    local status
+    [[ -t 0 ]] || juno_die 'Execute a aplicação em um terminal de texto interativo (TTY).'
+    if juno_has_graphical_session; then
+        juno_die 'Saia de todas as sessões gráficas deste usuário, inclusive em outro TTY, antes de aplicar ou restaurar.'
+    else
+        status=$?
+        (( status == 1 )) || juno_die 'Não foi possível consultar as sessões do logind. Verifique systemd-logind antes de continuar.'
+    fi
 }
 
 juno_preflight_install() {

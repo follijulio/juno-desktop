@@ -1,12 +1,14 @@
 # Juno Desktop
 
-Sessão editorial para **Arch Linux x86_64 e Hyprland 0.56.x**, baseada no manual Netuno: papel creme, tinta, recortes retos e contornos marcados. Roboto organiza a interface; Space Mono identifica números, metadados e terminal.
+Ambiente para **Arch Linux x86_64 com GNOME e Wayland**. O GNOME fornece painel, aplicativos, notifica??es, capturas, bloqueio e energia. O Juno mant?m seus wallpapers, o terminal editorial e as ferramentas de desenvolvimento.
+
+A interface usa Roboto; Kitty usa **JetBrainsMono Nerd Font Mono 12**, Bash e Oh My Posh. O GNOME conserva a apar?ncia Adwaita e seus atalhos nativos.
 
 ## Instalar
 
-O Arch já deve estar instalado, com uma conta comum e acesso a `sudo`. Use os diretórios XDG padrão. O instalador atualiza **todo o sistema**, instala dependências oficiais e substitui integralmente os diretórios gerenciados após gerar e verificar um backup.
+Use uma conta comum com `sudo` e os diret?rios XDG padr?o. O instalador atualiza **todo o sistema** e instala pacotes dos reposit?rios oficiais, al?m dos aplicativos descritos abaixo. Altera??es nos arquivos gerenciados e nas prefer?ncias GNOME recebem backup.
 
-1. Extraia o projeto em um diretório do seu usuário. Se usar a distribuição, confira sua integridade:
+1. Extraia o projeto. Para a distribui??o, confira o checksum antes de extrair:
 
    ```bash
    sha256sum --check SHA256SUMS
@@ -14,66 +16,75 @@ O Arch já deve estar instalado, com uma conta comum e acesso a `sudo`. Use os d
    cd juno-desktop
    ```
 
-2. Confira a simulação. Ela verifica plataforma, recursos e HTTPS, sem gravar arquivos nem executar `sudo`:
+2. Confira a simula??o, que n?o grava configura??es nem executa `sudo`:
 
    ```bash
    bash install.sh --dry-run
    ```
 
-3. Saia da sessão gráfica. Entre em um terminal de texto com `Ctrl + Alt + F3`, faça login e execute:
+3. Encerre a sess?o gr?fica da sua conta. Entre em um TTY com `Ctrl + Alt + F3`, fa?a login e execute:
 
    ```bash
    bash install.sh
    ```
 
-4. Revise as confirmações do pacman. Depois, inicie a sessão pelo seletor de sessões já instalado ou pelo TTY:
+4. Confira o resultado e entre na sess?o **GNOME** pelo seletor de sess?es do gerenciador de login.
 
-   ```bash
-   start-hyprland
-   ```
+O GDM ? habilitado somente quando n?o existe outro gerenciador de login habilitado. Um gerenciador existente ? preservado. O instalador n?o reinicia o computador nem inicia ou reinicia o gerenciador de login durante a instala??o; ap?s concluir, voc? pode reiniciar quando conveniente.
 
-Não execute `sudo bash install.sh`. Não basta alternar para outro TTY mantendo o Hyprland aberto: o instalador verifica processos da sua conta para impedir recargas parciais.
+N?o execute `sudo bash install.sh`. Alternar para um TTY mantendo a sess?o gr?fica aberta n?o ? suficiente. O instalador recusa a aplica??o enquanto encontra uma sess?o gr?fica da conta.
 
-Os utilitários básicos `sudo`, `curl`, `diffutils`, `tar`, `gzip`, `coreutils`, `findutils`, `util-linux`, `gawk` e `glibc` precisam estar disponíveis para as verificações. Se faltar algum, instale-o pelo pacman antes de executar o instalador. O diretório pessoal e os ancestrais gerenciados devem pertencer à sua conta e não permitir gravação por grupo ou outros usuários. A atualização verifica um mínimo de espaço, e o pacman verifica o espaço adicional da transação.
+S?o necess?rios `sudo`, `curl`, `diffutils`, `tar`, `gzip`, `coreutils`, `findutils`, `util-linux`, `gawk` e `glibc` para as verifica??es iniciais. Instale ferramentas faltantes pelo pacman. Diret?rio pessoal e ancestrais dos destinos precisam pertencer ? conta e impedir grava??o por terceiros.
 
-## O que acompanha a sessão
+## GNOME e personaliza??o
 
-- Hyprland modular, teclado ABNT2, monitores automáticos e espaços de trabalho.
-- Waybar com launcher, janela ativa, relógio, CPU, memória, rede e áudio. Brilho e bateria entram apenas quando o hardware é detectado.
-- Rofi para aplicativos e menu de sessão; Mako para notificações; Kitty para terminal.
-- Áudio PipeWire/WirePlumber, portais para compartilhamento de tela e seleção de arquivos, agente de autenticação e clipboard Wayland.
-- Captura de região ou tela, bloqueio Hyprlock, inatividade Hypridle e wallpaper original.
+O perfil prepara fontes Roboto/JetBrains Mono, apar?ncia clara Adwaita, teclado brasileiro ABNT2, anima??es desativadas e bloqueio nativo. A tela apaga e bloqueia ap?s **5 minutos**; o Juno n?o agenda suspens?o autom?tica. Configura??es, gerenciamento de janelas e monitores permanecem nas interfaces nativas do GNOME.
 
-O bloqueio ocorre após **5 minutos**; os monitores apagam após **10 minutos**. Suspensões solicitadas pelo sistema passam pela integração de bloqueio. O Juno não agenda suspensão automática.
+Nenhum atalho personalizado ? acrescentado. Alguns atalhos nativos ?teis:
 
-## Aplicativos e desenvolvimento
+| Atalho | A??o |
+| --- | --- |
+| `Super` | Abrir a vis?o geral e buscar aplicativos |
+| `Super + A` | Mostrar aplicativos |
+| `Super + L` | Bloquear a sess?o |
+| `Super + V` | Abrir notifica??es |
+| `Alt + Tab` | Alternar aplicativos |
+| `Super + Page Up / Page Down` | Alternar espa?os de trabalho |
+| `Print` | Abrir a captura interativa |
+| `Shift + Print` | Capturar a tela inteira |
+| `Alt + Print` | Capturar a janela ativa |
+| `Ctrl + Alt + Shift + R` | Abrir grava??o de tela |
 
-O instalador também prepara os seguintes programas:
+Esses s?o os padr?es do GNOME; atalhos j? personalizados pelo usu?rio s?o preservados. A captura nativa salva no diret?rio de imagens e copia a imagem para a ?rea de transfer?ncia. Use o menu do sistema para ?udio, rede, brilho, bloqueio e energia.
+
+A migra??o preserva os arquivos e pacotes do ambiente Hyprland que j? existem no computador. A nova instala??o n?o aplica as configura??es antigas de Hyprland, Waybar, Rofi, Mako ou Hyprlock. Os arquivos hist?ricos ainda presentes no reposit?rio servem ? compatibilidade e n?o s?o iniciados pelo perfil GNOME.
+
+## Terminal e aplicativos
+
+Kitty abre `/bin/bash` com JetBrainsMono Nerd Font Mono e as variantes Bold, Italic e Bold Italic. O tema usa fundo tinta, texto papel e as 16 cores ANSI da paleta Juno. Oh My Posh ? instalado no diret?rio do usu?rio a partir de uma vers?o identificada e verificada; o tema ? local, sem baixar scripts durante a abertura do terminal. A integra??o preserva o restante de `.bashrc` e mant?m Bash utiliz?vel se o prompt n?o estiver dispon?vel.
 
 | Grupo | Aplicativos e ferramentas |
 | --- | --- |
-| Uso diário | Firefox, Thunar, mpv e pavucontrol |
+| Uso di?rio | Firefox, gerenciador de arquivos, mpv e pavucontrol |
 | Entretenimento | Spotify, Steam e Discord |
-| Editor | **Visual Studio Code original da Microsoft**, estável, com Marketplace original |
+| Editor | **Visual Studio Code original da Microsoft**, est?vel, com Marketplace original |
 | Python | Python, pip, uv e ambientes virtuais |
 | JavaScript | Node.js e npm |
 | C e C++ | GCC, Make, Clang, CMake, Ninja, pkgconf, GDB e LLDB |
 | Go e Rust | Go, Rust e Cargo |
 | Desenvolvimento | Git, GitHub CLI, SQLite, ripgrep, fd, ShellCheck e shfmt |
 
-Steam habilita o repositório oficial `multilib` quando necessário, preservando `/etc/pacman.conf` em um backup identificado no log. O pacman pode pedir a escolha do driver Vulkan de **32 bits**: escolha o correspondente à sua GPU. O instalador não escolhe um driver de vídeo automaticamente nem habilita repositórios de teste.
+O VS Code mant?m prefer?ncias existentes e prepara JetBrains Mono no editor e JetBrainsMono Nerd Font Mono no terminal integrado. Fica em `~/.local/share/juno-apps/vscode/`, com vers?es anteriores preservadas, comando `~/.local/bin/code` e entrada nos aplicativos. O pacote `code` do Arch, Code-OSS e VSCodium n?o substituem a distribui??o Microsoft.
 
-Discord e os demais pacotes usam os repositórios oficiais do Arch. Spotify é instalado por usuário via Flathub: o cliente vem do fornecedor, mas o empacotamento é comunitário, sem afirmar verificação pelo Spotify. Um remote `flathub` existente com outro endereço ou sem verificação de assinaturas é recusado. Para atualizar depois:
+Spotify usa Flatpak por usu?rio via Flathub; seu empacotamento ? comunit?rio. Um remote `flathub` existente com outro endere?o ou sem verifica??o de assinaturas ? recusado. Para atualizar:
 
 ```bash
 flatpak update --user
 ```
 
-O VS Code é baixado diretamente da Microsoft, com versão estável, SHA-256 e identidade conferidos antes da ativação. Não instala o pacote `code` do Arch, Code-OSS ou VSCodium. Fica em `~/.local/share/juno-apps/vscode/`, com versões anteriores preservadas, comando `~/.local/bin/code` e entrada no launcher. Reexecutar o instalador atualiza a versão; launchers anteriores são preservados em `~/.local/state/juno-desktop/apps/backups/`.
+Steam habilita `multilib` quando necess?rio e preserva `/etc/pacman.conf` em um backup registrado. O pacman pode pedir um provider Vulkan de 32 bits: escolha o correspondente ? sua GPU. O instalador n?o escolhe drivers de v?deo nem habilita reposit?rios de teste.
 
-Na sessão Juno, `~/.local/bin` e os aplicativos Flatpak são incluídos nos caminhos da sessão. Em um TTY já aberto, use `~/.local/bin/code` ou atualize o PATH do seu shell. Não são instaladas extensões de editor, pacotes globais pip/npm, contas ou serviços de contêiner automaticamente.
-
-Para Python, use um ambiente isolado por projeto, preservando o Python do sistema:
+Para Python, use ambientes isolados por projeto:
 
 ```bash
 uv venv
@@ -81,104 +92,57 @@ source .venv/bin/activate
 uv pip install nome-do-pacote
 ```
 
-Instalações de aplicativos, habilitação de multilib e seus dados ficam fora do rollback dos dotfiles. Falhas obrigatórias interrompem a aplicação da nova sessão, e os programas já instalados permanecem registrados.
+N?o s?o instaladas extens?es de editor, pacotes globais pip/npm ou servi?os de cont?iner automaticamente. Pacotes, aplicativos instalados e atualiza??es do Arch ficam fora do rollback das configura??es.
 
-## Wallpapers e bloqueio
+## Wallpapers
 
-A pasta `wallpapers/` fornecida foi integrada com **32 arquivos e 31 imagens únicas**. Os nomes foram organizados sem alterar pixels nem apagar a cópia duplicada. A paisagem **Ghibli · Vale tranquilo** é a seleção inicial.
+A galeria fornecida tem **32 arquivos e 31 imagens ?nicas**, preservando os pixels originais e a c?pia duplicada. **Ghibli ? Vale tranquilo** ? o padr?o inicial; o wallpaper editorial creme tamb?m acompanha o projeto.
 
-Use **Super + W** para escolher uma imagem. A preferência persiste entre sessões e acompanha o bloqueio, que agora tem cartão creme, moldura de 4 px, sombra sólida, faixa menta, relógio, data, usuário e campo de senha.
+Troque o fundo em **Configura??es ? Apar?ncia**, usando a op??o para adicionar uma imagem da galeria em `~/.local/share/juno-desktop/wallpapers/gallery/`. O bloqueio nativo acompanha o fundo do desktop, com o desfoque do GNOME. PNG, JPG, WebP e AVIF usam os decoders do sistema; `libheif` fornece o suporte AVIF.
 
-```bash
-bash ~/.config/juno/bin/wallpaper list
-bash ~/.config/juno/bin/wallpaper set ghibli-vale
-```
-
-JPG, PNG e WebP são usados no desktop e no bloqueio. AVIF é oferecido no desktop; o bloqueio usa a imagem padrão JPG por compatibilidade com o decoder disponível no Arch. Se a galeria estiver indisponível, o bloqueio continua disponível sobre papel creme.
-
-Para adicionar imagens ao projeto, coloque arquivos com nomes minúsculos, sem espaços, em `wallpapers/`, gere novamente o catálogo e execute o instalador:
+Para acrescentar imagens ao projeto, use nomes min?sculos sem espa?os em `wallpapers/`, atualize o cat?logo e reinstale:
 
 ```bash
 python3 tools/catalog_wallpapers.py
 bash install.sh
 ```
 
-O catálogo e os checksums são verificados antes da aplicação. As fotografias/ilustrações fornecidas são uma exceção autorizada à paleta dos fundos; controles, painéis e tipografia preservam a identidade Netuno.
+Cat?logo e checksums s?o conferidos antes de aplicar os recursos. Fotografias e ilustra??es mant?m suas cores; a paleta editorial ? validada nos recursos controlados pelo Juno, sem impor um tema ao Shell GNOME ou aos aplicativos de terceiros.
 
-## Atalhos
-
-| Atalho | Ação |
-| --- | --- |
-| `Super + Enter` | Abrir Kitty |
-| `Super + E` | Abrir Thunar |
-| `Super + B` | Abrir Firefox |
-| `Super + C` | Abrir VS Code original |
-| `Super + D` | Abrir aplicativos |
-| `Super + W` | Escolher wallpaper |
-| `Super + Q` | Fechar a janela ativa |
-| `Super + F` | Alternar tela cheia |
-| `Super + V` | Alternar janela flutuante |
-| `Super + J` | Alternar divisão do layout |
-| `Super + setas` | Mover foco |
-| `Super + Shift + setas` | Mover janela |
-| `Super + 1…0` | Abrir espaço de trabalho 1…10 |
-| `Super + Shift + 1…0` | Enviar janela ao espaço 1…10 |
-| `Super + botão esquerdo/direito` | Mover/redimensionar janela |
-| `Super + L` | Bloquear sessão |
-| `Super + Esc` | Abrir menu de sessão |
-| `Print` | Salvar captura de região |
-| `Shift + Print` | Salvar captura de tela inteira |
-| `Ctrl + Print` | Copiar captura de região |
-| Teclas de volume, microfone e brilho | Controlar o dispositivo correspondente |
-
-Capturas salvas vão para `Juno`, dentro do diretório de imagens definido por `xdg-user-dir`, com fallback para `~/Pictures`. O clipboard não mantém um histórico adicional em disco.
-
-## Personalizar
-
-Os módulos de `~/.config/hypr/conf/` separam aparência, teclado, monitores, atalhos e sessão. Ajuste monitores em `monitors.lua`, mantendo a configuração automática como ponto de partida. Horários de inatividade ficam em `~/.config/hypr/hypridle.conf`.
-
-Waybar usa `~/.config/waybar/config.jsonc` e `style.css`. O arquivo `.jsonc` fornecido contém JSON estrito; mantenha essa compatibilidade com `jq`. A sessão cria uma cópia de execução para inserir bateria e brilho, sem editar o arquivo base.
-
-O terminal usa o esquema **técnico editorial**: fundo tinta e texto papel. Essa variante mantém contraste para as cores ANSI dentro da paleta. Interfaces internas de aplicativos e cores truecolor emitidas por programas têm seus próprios temas.
-
-Uma nova instalação substitui personalizações dos diretórios gerenciados e cria um backup delas. O instalador não tenta mesclar arquivos arbitrários. Não altere a configuração durante instalação ou recuperação.
-
-## Backup e restauração
+## Backup e restaura??o
 
 ```bash
 bash install.sh --list-backups
-bash install.sh --rollback 20261015T120000Z-XXXXXXXX
+bash install.sh --rollback ID-DO-BACKUP
 ```
 
-Substitua o ID de exemplo pelo ID listado. A restauração deve ocorrer fora da sessão gráfica e funciona sem internet ou `sudo`. Antes de restaurar, o estado atual é salvo em outro backup, preservando suas edições. Arquivos originalmente ausentes voltam a ficar ausentes.
+Use um ID listado. Execute a restaura??o fora da sess?o gr?fica. Ela n?o depende de internet nem de `sudo`; o estado substitu?do recebe outro backup para preservar suas edi??es.
 
-Backups compactados, manifestos, diário e registros ficam em `~/.local/state/juno-desktop/`, com acesso privado. Não apague esse diretório durante uma recuperação. Links simbólicos de configurações existentes são preservados como links, sem copiar ou modificar seus destinos externos.
+Backups, manifestos, di?rio e logs ficam em `~/.local/state/juno-desktop/`, com acesso privado. Backups **v2** incluem os arquivos gerenciados e as prefer?ncias GNOME/integra??es alteradas pela instala??o. Backups **v1** legados continuam restaur?veis com seu conjunto original de arquivos.
 
-Se houver uma operação interrompida, a próxima execução recuperará o diário antes de aplicar novos arquivos. Se detectar alterações que tornem a recuperação ambígua, o instalador para e mantém os arquivos envolvidos; consulte [arquitetura e recuperação](docs/ARQUITETURA.md).
+O instalador salva somente as prefer?ncias que gerencia. A restaura??o n?o deve substituir toda a base dconf. Arquivos originalmente ausentes voltam a ficar ausentes e prefer?ncias sem valor pr?prio voltam ao padr?o do sistema.
 
-**Restauração cobre configurações, fontes e recursos Juno. Pacotes instalados e atualizações do Arch não são revertidos.** As versões antes e depois do pacman ficam nos registros de pacotes.
+Uma execu??o interrompida ? recuperada pelo di?rio antes de nova aplica??o. Se o estado n?o permitir recupera??o segura, o instalador interrompe a opera??o e preserva os arquivos envolvidos. N?o apague manualmente o di?rio ou os backups para for?ar a instala??o. Consulte [arquitetura e recupera??o](docs/ARQUITETURA.md).
+
+**Pacotes instalados, aplicativos e atualiza??es do Arch n?o s?o revertidos.** O backup de multilib e os registros de pacotes permanecem dispon?veis separadamente.
 
 ## Verificar e distribuir
 
 ```bash
-# Verificações portáveis: Bash, ShellCheck, Python 3 e utilitários GNU.
+# Sintaxe Bash, ShellCheck, Python e testes com servi?os simulados.
 bash tests/run.sh
 
-# Parser real, somente no Arch, como usuário comum.
+# Verifica??es dispon?veis no Arch, como usu?rio comum.
 bash tests/native.sh
 
-# Distribuição reproduzível, com scripts executáveis e finais de linha LF.
+# Distribui??o com LF, permiss?es POSIX e SHA-256.
 python3 tools/package.py
 ```
 
-O pacote fica em `dist/juno-desktop.tar.gz`, acompanhado de `SHA256SUMS`. [Validação e roteiro de aceitação](docs/VALIDACAO.md) distinguem testes locais de verificações gráficas pendentes.
+O pacote fica em `dist/juno-desktop.tar.gz`, acompanhado de `SHA256SUMS`. Um erro na prepara??o n?o substitui uma distribui??o anterior. A reprodu??o do wallpaper compara estrutura e pixels, tolerando diferen?as de compress?o entre vers?es de zlib.
 
-## Fontes e compatibilidade
+Os testes realizados no Windows n?o certificam uma sess?o GNOME real. Veja [resultados efetivos](docs/RESULTADOS.md) e [aceita??o no Arch](docs/VALIDACAO.md).
 
-Space Mono acompanha os quatro arquivos originais, licença OFL, revisão imutável e checksums em `assets/fonts/spacemono/`. Roboto vem do pacote oficial `ttf-roboto`. Não é necessário instalar yay ou paru.
+Space Mono permanece em `assets/fonts/spacemono/`, com os quatro arquivos originais, licen?a e checksums, para compatibilidade com recursos hist?ricos. Roboto e JetBrains Mono/Nerd Font v?m de pacotes oficiais do Arch.
 
-O projeto usa `rofi` com Wayland e `awww`, os nomes atuais dos pacotes antes citados como rofi-wayland e swww. Não instala gerenciador de login ou drivers de GPU. A rede é exibida sem substituir seu gerenciador de conexão.
-
-Referências: [identidade visual e aplicação do manual Netuno](docs/IDENTIDADE-VISUAL.md), [Hyprland](https://wiki.hypr.land/configuring/core/), [pacotes oficiais do Arch](https://archlinux.org/packages/), [Google Fonts — Space Mono](https://github.com/google/fonts/tree/main/ofl/spacemono). O projeto preserva o nome Juno Desktop, sem criar assinatura comercial conjunta.
-
-Fontes dos aplicativos: [distribuição Microsoft do VS Code](https://code.visualstudio.com/docs/setup/linux), [Spotify no Flathub](https://flathub.org/en/apps/com.spotify.Client) e [Steam no Arch](https://archlinux.org/packages/multilib/x86_64/steam/).
+Refer?ncias: [identidade visual](docs/IDENTIDADE-VISUAL.md), [GNOME](https://www.gnome.org/), [capturas GNOME](https://help.gnome.org/gnome-help/screen-shot-record.html), [pacotes oficiais Arch](https://archlinux.org/packages/), [Oh My Posh](https://ohmyposh.dev/docs/installation/linux), [VS Code Linux](https://code.visualstudio.com/docs/setup/linux), [Spotify no Flathub](https://flathub.org/en/apps/com.spotify.Client).

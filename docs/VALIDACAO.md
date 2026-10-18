@@ -1,31 +1,32 @@
-# Validação
+# Valida??o
 
-## Verificações automáticas
+## Verifica??es autom?ticas
 
-`bash tests/run.sh` reúne sintaxe Bash, ShellCheck quando disponível, conformidade visual e integridade dos recursos, testes do instalador, transações e scripts de sessão. Python 3 é uma dependência de desenvolvimento; não é necessário para executar a sessão instalada.
+`bash tests/run.sh` executa sintaxe Bash, ShellCheck quando dispon?vel, checksums, conformidade dos recursos Juno e testes de instala??o, aplicativos, backup, GNOME e shell. Servi?os, gerenciador de pacotes e downloads s?o simulados nos testes port?veis.
 
-As transações usam diretórios temporários e comandos simulados. No Windows, casos dependentes das permissões POSIX, links ou `flock` real podem ser marcados como não reproduzíveis; os testes registram esses limites explicitamente.
+Os testes Python tamb?m verificam a equival?ncia de pixels PNG com compress?o diferente, rejei??o de arquivos inv?lidos, reprodutibilidade do pacote, LF/permiss?es execut?veis e preserva??o da distribui??o anterior em caso de falha.
 
-`bash tests/native.sh` exige Arch e usuário comum. Executa `Hyprland --verify-config` em diretório de runtime privado, sem iniciar uma sessão gráfica, e repete a suíte portável. Isso confirma o parser, mas não certifica hardware, serviços ou aparência.
+No Windows, permiss?es POSIX, links reais, `flock`, D-Bus e servi?os GNOME n?o podem ser considerados validados. Casos ignorados ou simulados devem ser registrados. `bash tests/native.sh` exige Arch Linux e usu?rio comum; os checks autom?ticos dispon?veis no alvo n?o substituem aceita??o gr?fica.
 
-## Aceitação em uma sessão real
+## Aceita??o no Arch
 
-Execute em um Arch de teste antes de usar como configuração principal:
+Use um Arch de teste antes de aplicar ao ambiente principal:
 
-- Instalar a partir de TTY e confirmar logs, backup, fontes e saída bem-sucedida. Reexecutar sem edições e conferir ausência de backup duplicado.
-- Iniciar por `start-hyprland`; conferir ausência de erros de configuração e de processos duplicados após recarregar o compositor.
-- Revisar Waybar, launcher, notificações, Kitty e bloqueio em 1366×768, 1920×1080 e monitor com escala maior. Verificar sombras sem corte, texto legível, foco e seleção por teclado.
-- Testar todos os atalhos do README, teclado ABNT2, janelas flutuantes, tela cheia, múltiplos espaços e, quando disponível, múltiplos monitores.
-- Confirmar áudio, mute, microfone, brilho e presença condicional de bateria. Em máquina sem esses dispositivos, verificar ausência de controles quebrados.
-- Salvar região e tela inteira, copiar região e cancelar seleção; conferir nomes únicos e tratamento de diretório de imagens com espaços.
-- Testar seleção de arquivos e compartilhamento de tela em um aplicativo Wayland compatível, verificando os backends dos portais.
-- Bloquear manualmente, aguardar 5/10 minutos, suspender pelo sistema e retomar. Confirmar que autenticação precede o retorno ao conteúdo.
-- Cancelar todas as confirmações do menu de sessão e verificar que nenhuma ação ocorre. Confirmar saída/reinício/desligamento somente quando apropriado.
-- Restaurar um backup após editar um arquivo; conferir retorno ao estado original e preservação das edições no backup recém-criado.
-- Conferir Steam, Discord, Spotify, Firefox e VS Code no launcher. Executar `code --version`, `python --version`, `node --version`, `gcc --version`, `go version` e `cargo --version` na sessão Juno. Confirmar nome Visual Studio Code e acesso ao Marketplace original.
-- Verificar multilib habilitado, backup do pacman e escolha correta do provider Vulkan de 32 bits. Validar instalação/atualização Flatpak sem alterar remotes de outro endereço.
-- Abrir `Super + W`, selecionar diferentes imagens, cancelar, reiniciar a sessão e bloquear. Conferir persistência e foto correta; escolher AVIF e confirmar fallback JPG no bloqueio. Galeria indisponível deve preservar o bloqueio com fundo creme.
+- Instalar pelo TTY; conferir logs, fontes e backup. Reexecutar sem edi??es e conferir idempot?ncia.
+- Confirmar que um gerenciador de login existente permanece habilitado; sem outro gerenciador, conferir GDM habilitado. Nenhum deles deve ser iniciado ou reiniciado pelo instalador.
+- Entrar em GNOME Wayland. Conferir vis?o geral, notifica??es, painel, monitores, escala, ABNT2 e atalhos nativos sem atalhos Juno adicionais.
+- Conferir apar?ncia clara, Roboto na interface, JetBrains Mono no c?digo e Nerd Font Mono nos terminais, sem glifos ausentes. Testar Kitty com Bash/Oh My Posh e o terminal integrado do VS Code.
+- Conferir que `.bashrc` e prefer?ncias de editor n?o relacionadas ao Juno foram preservadas. Abrir Bash interativo e n?o interativo; remover temporariamente o execut?vel Posh e confirmar shell funcional.
+- Testar ?udio, mute, microfone, brilho, bateria e rede nas interfaces GNOME; equipamento sem controle de brilho/bateria n?o deve exibir recursos quebrados do Juno.
+- Testar captura interativa, janela, tela inteira, cancelamento e grava??o. Conferir arquivo salvo e c?pia para clipboard.
+- Testar sele??o de arquivos e compartilhamento de tela no Firefox e em aplicativos Flatpak; conferir portais GNOME.
+- Bloquear com `Super + L`, aguardar 5 minutos de inatividade, suspender manualmente e retomar; confirmar autentica??o antes de visualizar a sess?o. N?o deve existir suspens?o autom?tica agendada pelo perfil.
+- Escolher JPG, PNG, WebP e AVIF em Configura??es ? Apar?ncia; conferir desktop e bloqueio ap?s novo login, inclusive com caminhos contendo espa?os e caracteres especiais.
+- Abrir Firefox, gerenciador de arquivos, Steam, Discord, Spotify e VS Code nos aplicativos. Conferir `code --version`, linguagens e Marketplace original.
+- Conferir multilib e seu backup, provider Vulkan de 32 bits e atualiza??o Flatpak sem substituir remotes existentes por outra origem.
+- Editar arquivo/prefer?ncia gerenciada e restaurar backup v2; conferir arquivos, valores GNOME e backup das edi??es substitu?das. Restaurar um backup legado v1 sem exigir snapshots GNOME inexistentes.
+- Interromper uma instala??o de teste e confirmar recupera??o do di?rio; testar uma altera??o concorrente e conferir interrup??o sem perda dos arquivos divergentes.
 
-## Estado da validação
+## Estado da valida??o
 
-A implementação foi preparada em Windows com Git Bash. O arquivo `RESULTADOS.md` registra os comandos efetivamente executados e seus resultados. Testes gráficos e de serviços no Arch precisam de execução no sistema alvo; sua ausência não deve ser apresentada como sessão homologada.
+[RESULTADOS.md](RESULTADOS.md) registra somente comandos efetivamente executados e distingue a baseline Hyprland dos novos testes. Os resultados port?veis n?o homologam autentica??o, suspens?o, servi?os, gr?ficos ou hardware.

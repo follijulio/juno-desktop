@@ -1,27 +1,27 @@
-# Identidade visual — Juno Desktop
+# Identidade visual ? Juno Desktop
 
-Adaptação do manual Netuno para os componentes gerenciados da sessão. O nome do produto é Juno Desktop. A referência editorial usa fichas, hierarquia tipográfica e contornos precisos.
+O Juno aplica a refer?ncia editorial Netuno aos recursos que controla: wallpaper original, terminal, prompt e configura??es tipogr?ficas. O GNOME conserva Adwaita e seus componentes nativos.
 
-| Cor | sRGB | Aplicação |
+| Cor | sRGB | Aplica??o nos recursos Juno |
 | --- | --- | --- |
-| Papel creme | `#FFFDF5` | Fundo principal, launcher e bloqueio |
-| Tinta | `#111111` | Texto, contornos e sombras sólidas |
-| Branco | `#FFFFFF` | Cartões e notificações |
-| Bege | `#F4EDDB` | Apoios e estados neutros |
-| Terracota | `#FF5B35` | Ênfases |
-| Amarelo marca | `#FFCC00` | Seleção e identificação |
-| Amarelo suave | `#FFE066` | Apoio editorial e atenção |
-| Menta | `#B8F2E6` | Hover e confirmação |
-| Coral | `#FF9B85` | Urgência e erro |
+| Papel creme | `#FFFDF5` | Texto do terminal e fundo editorial |
+| Tinta | `#111111` | Fundo do terminal e contornos |
+| Branco | `#FFFFFF` | Texto e cart?es do wallpaper |
+| Bege | `#F4EDDB` | Apoios neutros |
+| Terracota | `#FF5B35` | ?nfases e cursor |
+| Amarelo marca | `#FFCC00` | Sele??o |
+| Amarelo suave | `#FFE066` | Apoio e aten??o |
+| Menta | `#B8F2E6` | Confirma??o |
+| Coral | `#FF9B85` | Urg?ncia e erro |
 
-Roboto 400/700/900 organiza títulos, controles e texto. Space Mono 400/700 identifica dados e o terminal; os estilos itálicos originais acompanham as fontes. Não há dependência de fontes de ícones.
+Roboto organiza a interface GNOME. JetBrains Mono ? a fam?lia de c?digo; Kitty e o terminal integrado do VS Code usam JetBrainsMono Nerd Font Mono para os s?mbolos do prompt. Kitty define as quatro variantes reais e tamanho 12. Space Mono original permanece vendorizada para compatibilidade com recursos e backups anteriores.
 
-Cantos têm raio zero. Controles e cartões recebem contorno tinta de 2 px, painéis principais de 4 px. Sombras permitidas são sólidas, deslocadas 4 px e sem desfoque. O compositor usa janelas planas, sem sombras nativas, blur, transparência ou animação. Waybar reserva margem para as sombras; Rofi usa uma caixa de apoio tinta. Mako usa cartões planos por limitação da sua API de estilo.
+Kitty mant?m a variante t?cnica editorial: fundo tinta, texto papel, superf?cie opaca e cores ANSI da paleta. Programas que emitem truecolor e interfaces internas de aplicativos t?m seus pr?prios temas.
 
-O foco e a seleção usam cor contrastante e rótulos persistentes. Texto pequeno fica em tinta sobre fundos claros. Kitty adota a variante técnica editorial com fundo tinta para manter legibilidade das cores ANSI da mesma paleta. Aplicativos que emitem truecolor e interfaces internas de terceiros mantêm seus próprios temas.
+O wallpaper editorial tem microtextura creme/bege e uma ficha geom?trica de cantos retos, com sombra s?lida e sem desfoque. PNG indexado, SVG e checksums acompanham o projeto. O gerador confere estrutura e pixels PNG e conte?do SVG; diferen?as no compressor n?o alteram a identidade.
 
-O wallpaper original tem microtextura creme/bege e uma ficha geométrica no canto inferior direito. A fonte SVG, o PNG indexado e seus checksums são reproduzidos por `tools/generate_wallpaper.py`; não dependem de download durante a instalação.
+A galeria fotogr?fica e ilustrada fornecida pelo usu?rio preserva pixels e cores originais. Ghibli ? Vale tranquilo ? o padr?o inicial. O bloqueio nativo do GNOME acompanha o fundo do desktop e aplica seu pr?prio desfoque.
 
-A galeria fornecida pelo usuário também está disponível, com Ghibli · Vale tranquilo como padrão. Imagens mantêm seus pixels e suas cores originais; essa exceção aplica-se aos fundos fotográficos e ilustrados. Os controles continuam restritos à paleta. O bloqueio usa um cartão creme opaco de 520 × 500, contorno de 4 px, sombra sólida de 8 px e faixa menta. Relógio/data usam Space Mono; identificação, senha e mensagens usam Roboto. Fotografias ficam atrás dos painéis, sem blur ou sobreposições translúcidas.
+O projeto n?o promete que painel, notifica??es, bloqueio ou todos os aplicativos GNOME obede?am ? paleta, aos raios ou ?s sombras do ambiente Hyprland anterior. N?o instala extens?es de tema nem CSS global para modificar esses componentes. As anima??es s?o desativadas pela prefer?ncia nativa.
 
-Mensagens são curtas, em português brasileiro, identificando a ação, o resultado e a recuperação disponível. A interface evita animações e preserva contraste sem depender de cor como único sinal.
+`tools/check_brand.py` confere configura??es ativas Juno/Kitty, cores dos recursos editoriais, fontes autorizadas e integridade dos arquivos vendorizados. Configura??es Hyprland hist?ricas n?o fazem parte dessa valida??o da distribui??o GNOME.
