@@ -13,6 +13,7 @@ No Windows, permissões POSIX, links reais, `flock`, D-Bus e serviços GNOME nã
 Use um Arch de teste antes de aplicar ao ambiente principal:
 
 - Instalar pelo TTY; conferir logs, fontes e backup. Reexecutar sem edições e conferir idempotência.
+- Cancelar a instalação do runtime do Spotify e conferir o aviso: VS Code, Oh My Posh, fontes e perfil GNOME devem ser instalados normalmente. Falhas no Spotify opcional também devem permitir continuar.
 - Confirmar que o gerenciador de login existente permanece configurado; sem outro gerenciador e sem máscara do GDM, conferir GDM habilitado. Nenhum serviço de login deve ser iniciado ou reiniciado pelo instalador. O alvo de boot existente deve ser preservado.
 - Entrar em GNOME Wayland. Conferir visão geral, notificações, painel, monitores, escala e atalhos nativos. Conferir preservação das preferências anteriores de teclado, tema, animações, bloqueio e suspensão.
 - Conferir Roboto na interface e documentos, Space Mono nos aplicativos monoespaçados GNOME, JetBrains Mono no editor e Nerd Font Mono nos terminais, sem glifos ausentes. Testar Kitty com Bash/Oh My Posh e o terminal integrado do VS Code.
@@ -22,7 +23,7 @@ Use um Arch de teste antes de aplicar ao ambiente principal:
 - Testar seleção de arquivos e compartilhamento de tela no Firefox e em aplicativos Flatpak; conferir portais GNOME.
 - Bloquear com `Super + L`, suspender manualmente e retomar; conferir autenticação antes de visualizar a sessão, conforme as preferências GNOME da conta.
 - Conferir wallpaper inicial Ghibli · Vale tranquilo e selecionar outra imagem pelas Configurações nativas. Validar persistência após login e caminhos com espaços e caracteres especiais. Testar JPG, PNG, WebP e AVIF quando seus decoders estiverem disponíveis.
-- Abrir Firefox, Nautilus, Steam, Discord, Spotify e VS Code nos aplicativos. Conferir `code --version`, linguagens e Marketplace original.
+- Abrir Firefox, Nautilus, Steam, Discord e VS Code nos aplicativos; testar Spotify quando instalado. Conferir `code --version`, linguagens e Marketplace original.
 - Conferir multilib e seu backup, provider Vulkan de 32 bits e atualização Flatpak sem substituir remotes existentes por outra origem.
 - Editar arquivo/preferência gerenciada e restaurar backup v2; conferir arquivos, valores GNOME e backup das edições substituídas. Preferências sem valor explícito devem voltar ao padrão. Restaurar backup legado v1 sem exigir snapshots GNOME inexistentes.
 - Interromper instalação de teste e confirmar recuperação do diário; testar alteração concorrente e conferir interrupção sem perda de arquivos ou preferências divergentes.

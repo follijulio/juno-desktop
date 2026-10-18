@@ -38,6 +38,7 @@ juno_on_exit() {
     fi
 }
 
+
 juno_begin_log() {
     local log_dir="$JUNO_STATE/logs"
     juno_private_subdir logs

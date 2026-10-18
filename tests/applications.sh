@@ -50,4 +50,45 @@ INSTALL_STATUS=1
 if (juno_install_spotify) > "$TEST_ROOT/error" 2>&1; then exit 1; fi
 grep -q 'instalação do Spotify falhou' "$TEST_ROOT/error"
 printf 'OK: falha Flatpak é reportada antes de aplicar dotfiles\n'
-printf '5 cenários de aplicativos passaram.\n'
+
+# A real juno_die inside the optional install must stay inside its subshell.
+# Files record calls because assignments in the subshell cannot reach this shell.
+VSCODE_STATUS=0
+juno_install_vscode() {
+    printf 'vscode\n' >> "$CALLS"
+    return "$VSCODE_STATUS"
+}
+for INSTALL_STATUS in 1 2; do
+    : > "$CALLS"
+    juno_install_applications > "$TEST_ROOT/error" 2>&1
+    [[ $JUNO_SPOTIFY_SKIPPED == 1 ]]
+    grep -q '^vscode$' "$CALLS"
+    grep -q 'Continuando com VS Code' "$TEST_ROOT/error"
+done
+printf 'OK: recusa e falha do Spotify não interrompem VS Code nem o instalador\n'
+
+INSTALL_STATUS=0
+: > "$CALLS"
+juno_install_applications > "$TEST_ROOT/error" 2>&1
+[[ $JUNO_SPOTIFY_SKIPPED == 0 ]]
+grep -q '^vscode$' "$CALLS"
+if grep -q 'Continuando com VS Code' "$TEST_ROOT/error"; then exit 1; fi
+printf 'OK: sucesso do Spotify limpa a indicação de aplicativo ignorado\n'
+
+REMOTE_URL=https://example.invalid/repo
+: > "$CALLS"
+juno_install_applications > "$TEST_ROOT/error" 2>&1
+[[ $JUNO_SPOTIFY_SKIPPED == 1 ]]
+grep -q 'endereço diferente' "$TEST_ROOT/error"
+grep -q '^vscode$' "$CALLS"
+if grep -q '^install ' "$CALLS"; then exit 1; fi
+printf 'OK: Flathub inseguro continua rejeitado sem impedir a configuração essencial\n'
+
+REMOTE_URL=https://dl.flathub.org/repo/
+VSCODE_STATUS=7
+: > "$CALLS"
+if juno_install_applications > "$TEST_ROOT/error" 2>&1; then exit 1; else status=$?; fi
+[[ $status == 7 ]]
+grep -q '^vscode$' "$CALLS"
+printf 'OK: falha do VS Code obrigatório continua sendo propagada\n'
+printf '10 cenários de aplicativos passaram.\n'

@@ -67,7 +67,7 @@ O VS Code fica em `~/.local/share/juno-apps/vscode/`, com versões anteriores pr
 
 Um arquivo gerenciado em `~/.config/environment.d/90-juno.conf` prepara os caminhos dos comandos locais e dos aplicativos Flatpak na próxima sessão GNOME.
 
-Spotify usa Flatpak por usuário via Flathub; seu empacotamento é comunitário. Um remote `flathub` existente com outra origem ou sem verificação de assinaturas é recusado. Para atualizar:
+Spotify é opcional e usa Flatpak por usuário via Flathub; seu empacotamento é comunitário. Cancelar a instalação ou encontrar uma falha gera um aviso e permite continuar com VS Code, Oh My Posh e o perfil GNOME. Um remote `flathub` existente com outra origem ou sem verificação de assinaturas é recusado. Para atualizar:
 
 ```bash
 flatpak update --user

@@ -52,6 +52,42 @@ case "$1" in
         juno_preflight_install() { [[ $1 == readonly ]]; }
         juno_main --dry-run
         ;;
+    optional-spotify)
+        # Exercise the real orchestration/traps and transaction after Flatpak
+        # refuses its runtime. Only external services, downloads and schemas
+        # are simulated; the dotfile backup, apply and finalization are real.
+        juno_define_targets() {
+            JUNO_TARGETS=(.bashrc)
+            JUNO_SOURCES=("$TEST_ROOT/new-bashrc")
+        }
+        printf 'managed bashrc\n' > "$TEST_ROOT/new-bashrc"
+        printf 'original\n' > "$TEST_ROOT/mock-settings"
+        juno_preflight_install() { :; }
+        juno_validate_resources() { :; }
+        juno_validate_gallery() { :; }
+        juno_install_packages() { :; }
+        juno_validate_gnome() { :; }
+        flatpak() {
+            case $1 in
+                remotes) printf 'flathub\thttps://dl.flathub.org/repo/\t\n' ;;
+                install) return 1 ;;
+                *) return 99 ;;
+            esac
+        }
+        juno_install_vscode() { printf 'vscode\n' >> "$TEST_ROOT/application-calls"; }
+        juno_install_posh() { printf 'posh\n' >> "$TEST_ROOT/application-calls"; }
+        juno_gsettings_snapshot() { cp -- "$TEST_ROOT/mock-settings" "$1"; }
+        juno_gsettings_desired() { printf 'Roboto\n' > "$1"; }
+        juno_gsettings_validate() { [[ -f $1 ]]; }
+        juno_gsettings_verify() { cmp -s -- "$TEST_ROOT/mock-settings" "$1"; }
+        juno_gsettings_restore() { cp -- "$1" "$TEST_ROOT/mock-settings"; }
+        juno_stage_gallery() { :; }
+        juno_stage_terminal() { :; }
+        juno_validate_staged() { :; }
+        juno_validate_installed_fonts() { :; }
+        juno_configure_gdm() { printf 'gdm\n' >> "$TEST_ROOT/application-calls"; }
+        juno_main
+        ;;
 esac
 HARNESS
 mkdir "$TEST_ROOT/home"
@@ -71,4 +107,16 @@ for target in .config/hypr .config/waybar .config/rofi .config/mako .config/kitt
     [[ $(cat "$TEST_ROOT/home/$target/original.txt") == original ]]
 done
 printf 'OK: recuperação integrada ocorre antes de verificar rede\n'
-printf '2 cenários de integração passaram.\n'
+bash "$TEST_ROOT/harness.sh" optional-spotify > "$TEST_ROOT/optional-spotify.log" 2>&1
+[[ $(cat "$TEST_ROOT/home/.bashrc") == 'managed bashrc' ]]
+[[ $(cat "$TEST_ROOT/mock-settings") == Roboto ]]
+[[ $(cat "$TEST_ROOT/application-calls") == $'vscode\nposh\ngdm' ]]
+[[ ! -f "$TEST_ROOT/home/.local/state/juno-desktop/pending.tsv" ]]
+grep -q 'Ambiente Juno configurado com sucesso' "$TEST_ROOT/optional-spotify.log"
+grep -q 'Spotify não foi instalado ou atualizado nesta execução' "$TEST_ROOT/optional-spotify.log"
+if grep -q 'Operação interrompida' "$TEST_ROOT/optional-spotify.log"; then
+    printf 'Falha opcional acionou a recuperação do instalador.\n' >&2
+    exit 1
+fi
+printf 'OK: falha opcional do Spotify permite aplicar e finalizar arquivos e preferências\n'
+printf '3 cenários de integração passaram.\n'
