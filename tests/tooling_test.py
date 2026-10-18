@@ -142,6 +142,30 @@ class DistributionTests(unittest.TestCase):
             finally:
                 link.unlink()
 
+    def test_excluded_symlink_is_rejected_before_filtering(self) -> None:
+        self.existing_distribution()
+        link = self.root / ".cache"
+        try:
+            link.symlink_to(self.root / "config", target_is_directory=True)
+        except OSError as error:
+            self.skipTest(f"Links simbólicos indisponíveis: {error}")
+        with self.assertRaises(ValueError):
+            PACKAGE.package(self.root, self.out)
+        self.assert_previous_distribution()
+
+    def test_prepared_archive_validation_failure_preserves_distribution(self) -> None:
+        self.existing_distribution()
+        original_open = PACKAGE.tarfile.open
+
+        def fail_validation(*args, **kwargs):
+            if len(args) > 1 and args[1] == "r:gz":
+                raise tarfile.ReadError("simulated validation failure")
+            return original_open(*args, **kwargs)
+
+        with patch.object(PACKAGE.tarfile, "open", fail_validation), self.assertRaises(tarfile.ReadError):
+            PACKAGE.package(self.root, self.out)
+        self.assert_previous_distribution()
+
     def test_excluded_metadata_is_not_published(self) -> None:
         (self.root / ".git").mkdir()
         (self.root / ".git/private").write_text("excluded", encoding="utf-8")

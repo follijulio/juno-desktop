@@ -104,6 +104,15 @@ txn_stage_for() {
     return 1
 }
 
+txn_stage_input_for() {
+    local stage
+    stage=$(txn_stage_for "$1") || return 1
+    [[ -f ${stage%/*}/merge-input && ! -L ${stage%/*}/merge-input ]] || {
+        _txn_error "destino sem input de mesclagem: $1"; return 1;
+    }
+    printf '%s/input-reference\n' "${stage%/*}"
+}
+
 _txn_settings_stage_safe() {
     local stage=$1 file
     [[ ${stage%/*} == "$JUNO_STATE" && ${stage##*/} =~ ^\.settings\.[[:alnum:]]{8}$ && -d $stage && ! -L $stage ]] || {
@@ -132,8 +141,9 @@ txn_lock() {
 }
 
 _txn_new_stage() {
-    local index=$1 parent stage live
-    _txn_mkdir_home "$(dirname -- "${JUNO_TARGETS[index]}")" || return 1
+    local index=$1 parent stage live relative_parent
+    relative_parent=$(dirname -- "${JUNO_TARGETS[index]}") || return 1
+    if [[ $relative_parent != . ]]; then _txn_mkdir_home "$relative_parent" || return 1; fi
     parent=$(_txn_parent "${JUNO_TARGETS[index]}") || return 1
     live="$parent/${JUNO_TARGETS[index]##*/}"
     stage=$(mktemp -d "$parent/.juno-stage.XXXXXXXX") || return 1
@@ -143,7 +153,7 @@ _txn_new_stage() {
     chmod 700 -- "$stage" || return 1
 }
 txn_prepare() {
-    local index source unusual
+    local index source unusual live
     _txn_require_lock || return 1
     _txn_contract || return 1
     [[ ! -e "$JUNO_STATE/pending.tsv" && ! -L "$JUNO_STATE/pending.tsv" ]] || { _txn_error 'recupere a transação pendente primeiro'; return 1; }
@@ -156,7 +166,24 @@ txn_prepare() {
         [[ -z "$unusual" ]] || { _txn_error "fonte contém link ou arquivo especial: $unusual"; return 1; }
         _txn_new_stage "$index" || return 1
         cp -a -- "$source" "${JUNO_STAGES[index]}" || return 1
+        if [[ -d ${JUNO_STAGES[index]} ]]; then
+            # Local Python checks may leave caches outside version control.
+            # They are never configuration or distribution resources.
+            find -P "${JUNO_STAGES[index]}" -type d -name __pycache__ -prune -exec rm -rf -- {} + || return 1
+            find -P "${JUNO_STAGES[index]}" -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete || return 1
+        fi
         JUNO_DESIRED_KINDS[index]=$(_txn_kind "$source") || return 1
+        case ${JUNO_TARGETS[index]} in
+            .bashrc|.config/Code/User/settings.json)
+                # Derive partial edits from a frozen input, then ensure it
+                # still matches before backing up or replacing user files.
+                : > "${JUNO_TXN_DIRS[index]}/merge-input" || return 1
+                live=$(_txn_live "${JUNO_TARGETS[index]}") || return 1
+                if [[ ${JUNO_ORIGINAL_KINDS[index]} != absent ]]; then
+                    cp -a -- "$live" "${JUNO_TXN_DIRS[index]}/input-reference" || return 1
+                fi
+                ;;
+        esac
     done
     if [[ $JUNO_GSETTINGS_ENABLED == 1 ]]; then
         JUNO_SETTINGS_STAGE=$(mktemp -d "$JUNO_STATE/.settings.XXXXXXXX") || return 1
@@ -209,7 +236,7 @@ txn_changed() {
 }
 
 txn_backup() {
-    local temporary tree manifest index target live kind id digest
+    local temporary tree manifest index target live kind id digest backup_source
     local -a existing=()
     _txn_require_lock || return 1
     [[ ${#JUNO_TXN_DIRS[@]} -eq ${#JUNO_TARGETS[@]} ]] || { _txn_error 'prepare os destinos antes do backup'; return 1; }
@@ -219,16 +246,27 @@ txn_backup() {
     temporary=$(mktemp -d "$JUNO_STATE/backups/.backup.XXXXXXXX") || return 1
     tree="$temporary/tree"; manifest="$temporary/manifest.tsv"
     mkdir -- "$tree" || return 1
-    printf 'juno-backup\t%s\t%s\t%s\n' "$((1 + JUNO_GSETTINGS_ENABLED))" "$(id -u)" "$JUNO_HOME" >"$manifest" || return 1
+    if [[ $JUNO_GSETTINGS_ENABLED == 1 ]]; then
+        printf 'juno-backup\t2\t%s\t%s\t%s\n' "$(id -u)" "$JUNO_HOME" "${#JUNO_TARGETS[@]}" >"$manifest" || return 1
+    else
+        printf 'juno-backup\t1\t%s\t%s\n' "$(id -u)" "$JUNO_HOME" >"$manifest" || return 1
+    fi
     for index in "${!JUNO_TARGETS[@]}"; do
         target=${JUNO_TARGETS[index]}; live=$(_txn_live "$target") || return 1
         kind=$(_txn_kind "$live") || return 1
         [[ "$kind" == "${JUNO_ORIGINAL_KINDS[index]}" ]] || { _txn_error "destino mudou durante a preparação: $target"; return 1; }
         printf 'target\t%s\t%s\n' "$target" "$kind" >>"$manifest" || return 1
         _txn_safe_stage "${JUNO_TXN_DIRS[index]}" "$target" || return 1
+        backup_source=$live
+        if [[ -f ${JUNO_TXN_DIRS[index]}/merge-input ]]; then
+            _txn_same "$live" "${JUNO_TXN_DIRS[index]}/input-reference" || {
+                _txn_error "configuração mudou durante a preparação: $target"; return 1;
+            }
+            backup_source="${JUNO_TXN_DIRS[index]}/input-reference"
+        fi
         if [[ "$kind" != absent ]]; then
             mkdir -p -- "$tree/$(dirname -- "$target")" || return 1
-            cp -a -- "$live" "$tree/$target" || return 1
+            cp -a -- "$backup_source" "$tree/$target" || return 1
             cp -a -- "$tree/$target" "${JUNO_TXN_DIRS[index]}/before" || return 1
             existing+=("$target")
         fi
@@ -261,7 +299,11 @@ txn_backup() {
 _txn_write_journal() {
     local temporary index
     temporary=$(mktemp "$JUNO_STATE/.pending.XXXXXXXX") || return 1
-    printf 'juno-pending\t%s\t%s\t%s\n' "$((1 + JUNO_GSETTINGS_ENABLED))" "$(id -u)" "$JUNO_HOME" >"$temporary" || return 1
+    if [[ $JUNO_GSETTINGS_ENABLED == 1 ]]; then
+        printf 'juno-pending\t2\t%s\t%s\t%s\n' "$(id -u)" "$JUNO_HOME" "${#JUNO_TARGETS[@]}" >"$temporary" || return 1
+    else
+        printf 'juno-pending\t1\t%s\t%s\n' "$(id -u)" "$JUNO_HOME" >"$temporary" || return 1
+    fi
     for index in "${!JUNO_TARGETS[@]}"; do
         printf 'target\t%s\t%s\t%s\t%s\n' "${JUNO_TARGETS[index]}" "${JUNO_TXN_DIRS[index]}" "${JUNO_ORIGINAL_KINDS[index]}" "${JUNO_DESIRED_KINDS[index]}" >>"$temporary" || return 1
     done
@@ -309,12 +351,14 @@ txn_apply() {
 }
 
 _txn_read_journal() {
-    local label version uid home extra target stage original desired settings_stage='' seen_stages='|'
+    local label version uid home extra target stage original desired expected_count settings_stage='' seen_stages='|'
     local -a targets=() stages=() originals=() desireds=()
     [[ -f "$JUNO_STATE/pending.tsv" && ! -L "$JUNO_STATE/pending.tsv" ]] || { _txn_error 'registro de transação inválido'; return 1; }
     {
         IFS=$'\t' read -r label version uid home extra || return 1
-        [[ "$label" == juno-pending && ( "$version" == 1 || "$version" == 2 ) && "$uid" == "$(id -u)" && "$home" == "$JUNO_HOME" && -z "$extra" ]] || { _txn_error 'registro pertence a outro usuário ou ambiente'; return 1; }
+        [[ "$label" == juno-pending && ( "$version" == 1 || "$version" == 2 ) && "$uid" == "$(id -u)" && "$home" == "$JUNO_HOME" ]] || { _txn_error 'registro pertence a outro usuário ou ambiente'; return 1; }
+        expected_count=$extra
+        [[ ( $version == 1 && -z $extra ) || ( $version == 2 && $extra =~ ^[1-9][0-9]*$ ) ]] || { _txn_error 'contagem de destinos inválida'; return 1; }
         while IFS=$'\t' read -r label target stage original desired extra; do
             if [[ $label == settings ]]; then
                 [[ $version == 2 && -z $settings_stage && -z $stage$original$desired$extra ]] || { _txn_error 'preferências inválidas no registro'; return 1; }
@@ -322,7 +366,9 @@ _txn_read_journal() {
                 _txn_settings_stage_safe "$settings_stage" || return 1
                 continue
             fi
-            [[ "$label" == target && -z "$extra" && -z $settings_stage ]] && _txn_allowed "$target" || { _txn_error 'destinos do registro inválidos'; return 1; }
+            if [[ $label != target || -n $extra || -n $settings_stage ]] || ! _txn_allowed "$target"; then
+                _txn_error 'destinos do registro inválidos'; return 1
+            fi
             case "$original:$desired" in
                 absent:absent|absent:directory|absent:symlink|absent:file|directory:absent|directory:directory|directory:symlink|directory:file|symlink:absent|symlink:directory|symlink:symlink|symlink:file|file:absent|file:directory|file:symlink|file:file) :;;
                 *) _txn_error 'tipo inválido no registro'; return 1;;
@@ -334,6 +380,7 @@ _txn_read_journal() {
         done
     } <"$JUNO_STATE/pending.tsv"
     [[ ${#targets[@]} -gt 0 && ( $version == 1 || -n $settings_stage ) ]] || { _txn_error 'registro incompleto; áreas temporárias foram mantidas'; return 1; }
+    [[ $version == 1 || $expected_count == "${#targets[@]}" ]] || { _txn_error 'registro truncado; áreas temporárias foram mantidas'; return 1; }
     JUNO_TARGETS=("${targets[@]}")
     _txn_contract || return 1
     JUNO_GSETTINGS_ENABLED=$((version - 1)); JUNO_SETTINGS_STAGE=$settings_stage
@@ -365,7 +412,7 @@ txn_recover() {
     _txn_require_lock || return 1
     _txn_exists "$JUNO_STATE/pending.tsv" || return 0
     _txn_read_journal || return 1
-    _txn_recovery_safe || { _txn_error 'recuperação ambígua: arquivos foram alterados. Registro, backup e áreas temporárias foram preservados'; return 1; }
+    _txn_recovery_safe || { _txn_error 'recuperação indisponível ou ambígua: confira arquivos, preferências e backend GNOME. Registro, backup e áreas temporárias foram preservados'; return 1; }
     if [[ $JUNO_GSETTINGS_ENABLED == 1 ]]; then
         juno_gsettings_restore "$JUNO_SETTINGS_STAGE/before.json" || return 1
         juno_gsettings_verify "$JUNO_SETTINGS_STAGE/before.json" || return 1
@@ -443,26 +490,31 @@ txn_list_backups() {
     [[ $found == 1 ]] || printf 'Nenhum backup disponível.\n'
 }
 _txn_read_backup() {
-    local backup=$1 label version uid home extra target kind index digest expected member allowed candidate settings_digest=''
+    local backup=$1 label version uid home extra target kind index digest expected member allowed candidate expected_count settings_digest=''
     local -a targets=()
     JUNO_RESTORE_KINDS=()
     JUNO_RESTORE_SETTINGS=''
     [[ -d "$backup" && ! -L "$backup" && -f "$backup/manifest.tsv" && ! -L "$backup/manifest.tsv" && -f "$backup/configs.tar.gz" && ! -L "$backup/configs.tar.gz" && -f "$backup/archive.sha256" && ! -L "$backup/archive.sha256" ]] || { _txn_error 'backup incompleto ou inválido'; return 1; }
     {
         IFS=$'\t' read -r label version uid home extra || return 1
-        [[ "$label" == juno-backup && ( "$version" == 1 || "$version" == 2 ) && "$uid" == "$(id -u)" && "$home" == "$JUNO_HOME" && -z "$extra" ]] || { _txn_error 'backup pertence a outro usuário ou ambiente'; return 1; }
+        [[ "$label" == juno-backup && ( "$version" == 1 || "$version" == 2 ) && "$uid" == "$(id -u)" && "$home" == "$JUNO_HOME" ]] || { _txn_error 'backup pertence a outro usuário ou ambiente'; return 1; }
+        expected_count=$extra
+        [[ ( $version == 1 && -z $extra ) || ( $version == 2 && $extra =~ ^[1-9][0-9]*$ ) ]] || { _txn_error 'contagem de destinos inválida no backup'; return 1; }
         while IFS=$'\t' read -r label target kind extra; do
             if [[ $label == settings ]]; then
                 [[ $version == 2 && -z $settings_digest && $target =~ ^[0-9a-f]{64}$ && -z $kind$extra ]] || { _txn_error 'preferências inválidas no backup'; return 1; }
                 settings_digest=$target
                 continue
             fi
-            [[ "$label" == target && -z "$extra" && -z $settings_digest ]] && _txn_allowed "$target" || { _txn_error 'manifesto de backup inválido'; return 1; }
+            if [[ $label != target || -n $extra || -n $settings_digest ]] || ! _txn_allowed "$target"; then
+                _txn_error 'manifesto de backup inválido'; return 1
+            fi
             case "$kind" in absent|file|directory|symlink) :;; *) _txn_error 'tipo inválido no backup'; return 1;; esac
             targets+=("$target"); JUNO_RESTORE_KINDS+=("$kind")
         done
     } <"$backup/manifest.tsv"
     [[ ${#targets[@]} -gt 0 && ( $version == 1 || -n $settings_digest ) ]] || { _txn_error 'manifesto de backup incompleto'; return 1; }
+    [[ $version == 1 || $expected_count == "${#targets[@]}" ]] || { _txn_error 'manifesto de backup truncado'; return 1; }
     JUNO_TARGETS=("${targets[@]}")
     _txn_contract || return 1
     if [[ $version == 2 ]]; then

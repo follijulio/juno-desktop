@@ -21,8 +21,13 @@ _terminal_mode() {
 }
 
 juno_stage_terminal() {
-    local bash_stage code_stage bash_input="$JUNO_HOME/.bashrc" code_input="$JUNO_HOME/.config/Code/User/settings.json"
+    local bash_stage code_stage bash_input code_input
     juno_require python3 node sha256sum
+    _terminal_input "$JUNO_HOME/.bashrc" || return 1
+    _terminal_input "$JUNO_HOME/.config/Code/User/settings.json" || return 1
+    # Merge the immutable transaction baseline, never a concurrently edited rc.
+    bash_input=$(txn_stage_input_for '.bashrc') || return 1
+    code_input=$(txn_stage_input_for '.config/Code/User/settings.json') || return 1
     _terminal_input "$bash_input" || return 1
     _terminal_input "$code_input" || return 1
     bash_stage=$(txn_stage_for '.bashrc') || return 1

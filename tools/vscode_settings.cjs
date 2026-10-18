@@ -22,6 +22,8 @@ function parse(text) {
   object(tree, 'settings.json');
   const profiles = parser.findNodeAtLocation(tree, ['terminal.integrated.profiles.linux']);
   if (profiles) object(profiles, 'terminal.integrated.profiles.linux');
+  const bash = parser.findNodeAtLocation(tree, ['terminal.integrated.profiles.linux', 'Juno Bash']);
+  if (bash) object(bash, 'Juno Bash');
   return tree;
 }
 
@@ -43,10 +45,12 @@ function update(original, desired) {
     [['editor.fontFamily'], desired['editor.fontFamily']],
     [['terminal.integrated.fontFamily'], desired['terminal.integrated.fontFamily']],
     [['terminal.integrated.defaultProfile.linux'], desired['terminal.integrated.defaultProfile.linux']],
-    [['terminal.integrated.profiles.linux', 'Juno Bash'], desired['terminal.integrated.profiles.linux']['Juno Bash']],
+    [['terminal.integrated.profiles.linux', 'Juno Bash', 'path'], desired['terminal.integrated.profiles.linux']['Juno Bash'].path],
+    [['terminal.integrated.profiles.linux', 'Juno Bash', 'args'], desired['terminal.integrated.profiles.linux']['Juno Bash'].args],
   ];
   for (const [path, value] of updates) {
-    const current = parser.getNodeValue(parser.findNodeAtLocation(parse(text), path));
+    const node = parser.findNodeAtLocation(parse(text), path);
+    const current = node ? parser.getNodeValue(node) : undefined;
     if (JSON.stringify(current) === JSON.stringify(value)) continue;
     text = parser.applyEdits(text, parser.modify(text, path, value, { formattingOptions }));
   }
@@ -57,7 +61,10 @@ function update(original, desired) {
 function main() {
   if (process.argv.length !== 5) throw new Error('Uso: vscode_settings.cjs ENTRADA SAÍDA PERFIL');
   const [input, output, profile] = process.argv.slice(2);
-  const original = fs.existsSync(input) ? fs.readFileSync(input, 'utf8') : '';
+  // Refuse undecodable bytes rather than silently replacing user text with U+FFFD.
+  const original = fs.existsSync(input)
+    ? new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(fs.readFileSync(input))
+    : '';
   const desired = JSON.parse(fs.readFileSync(profile, 'utf8'));
   fs.writeFileSync(output, update(original, desired), 'utf8');
 }

@@ -59,6 +59,8 @@ juno_main() {
         printf ' %q' "${JUNO_PACKAGES[@]}"
         printf '\n'
         juno_applications_plan
+        juno_gnome_plan
+        juno_log 'Terminal: Bash com Oh My Posh oficial verificado; JetBrains Mono no Kitty e VS Code. Arquivos existentes serão preservados em backup.'
         for target in "${JUNO_TARGETS[@]}"; do
             printf 'Gerenciado: %s/%s\n' "$JUNO_HOME" "$target"
         done
@@ -100,6 +102,8 @@ juno_main() {
     juno_validate_gnome
     juno_install_applications
     juno_install_posh
+    # Read by the transaction module loaded above.
+    # shellcheck disable=SC2034
     JUNO_GSETTINGS_ENABLED=1
     txn_prepare
     juno_stage_gallery

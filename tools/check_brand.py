@@ -82,22 +82,38 @@ def check_manifest(directory: Path, errors: list[str]) -> None:
                     f"Checksum incorreto: {target}", errors)
 
 
+def check_active_config(directory: Path, errors: list[str]) -> None:
+    require(directory.is_dir(), f"Configuração ativa ausente: {directory}", errors)
+    for path in sorted(directory.rglob("*")):
+        if "__pycache__" in path.relative_to(directory).parts or path.suffix == ".pyc":
+            continue
+        if path.is_file():
+            check_text(path, errors)
+
+
 def check_png(path: Path, errors: list[str]) -> None:
     data = path.read_bytes()
-    require(data[:8] == b"\x89PNG\r\n\x1a\n", "Wallpaper não é PNG", errors)
+    if data[:8] != b"\x89PNG\r\n\x1a\n":
+        errors.append("Wallpaper não é PNG")
+        return
     offset, compressed, palette = 8, bytearray(), b""
     header, transparent, ended = None, False, False
+    kinds: list[bytes] = []
     while offset + 12 <= len(data):
         size = struct.unpack(">I", data[offset:offset + 4])[0]
         if offset + size + 12 > len(data):
             errors.append("Chunk PNG truncado")
             return
         kind = data[offset + 4:offset + 8]
+        kinds.append(kind)
         payload = data[offset + 8:offset + 8 + size]
         expected_crc = struct.unpack(">I", data[offset + 8 + size:offset + 12 + size])[0]
         require((zlib.crc32(kind + payload) & 0xFFFFFFFF) == expected_crc,
                 f"CRC PNG inválido: {kind!r}", errors)
         if kind == b"IHDR":
+            if size != 13:
+                errors.append("Cabeçalho PNG inválido")
+                return
             header = struct.unpack(">IIBBBBB", payload)
         elif kind == b"PLTE":
             palette = payload
@@ -108,12 +124,22 @@ def check_png(path: Path, errors: list[str]) -> None:
         elif kind == b"IEND":
             ended = size == 0 and offset + 12 == len(data)
         offset += size + 12
+    require(offset == len(data), "Chunk PNG incompleto", errors)
+    require(len(kinds) >= 4 and kinds[:2] == [b"IHDR", b"PLTE"] and kinds[-1:] == [b"IEND"]
+            and all(kind == b"IDAT" for kind in kinds[2:-1]), "Estrutura PNG inválida", errors)
     require(ended, "Final PNG inválido", errors)
     require(header == (3840, 2160, 8, 3, 0, 0, 0), "Wallpaper deve ser PNG indexado opaco 3840×2160", errors)
     require(len(palette) == 27 and all(palette[n:n + 3].hex().upper() in PALETTE for n in range(0, len(palette), 3)),
             "Wallpaper contém cores fora da identidade", errors)
     require(not transparent, "Wallpaper deve ser opaco", errors)
-    rows = zlib.decompress(compressed)
+    try:
+        decoder = zlib.decompressobj()
+        rows = decoder.decompress(compressed, 2160 * 3841 + 1)
+    except zlib.error:
+        errors.append("Compressão PNG inválida")
+        return
+    require(decoder.eof and not decoder.unused_data and not decoder.unconsumed_tail,
+            "Fluxo comprimido PNG inválido", errors)
     require(len(rows) == 2160 * 3841, "Pixels do wallpaper incompletos", errors)
     if len(rows) != 2160 * 3841:
         return
@@ -129,10 +155,7 @@ def main() -> None:
     config = root / "config"
     # Configurações Hyprland históricas não fazem parte da instalação GNOME.
     for directory in (config / "kitty", config / "juno-gnome"):
-        require(directory.is_dir(), f"Configuração ativa ausente: {directory}", errors)
-        for path in sorted(directory.rglob("*")):
-            if path.is_file():
-                check_text(path, errors)
+        check_active_config(directory, errors)
     kitty = (config / "kitty/kitty.conf").read_text(encoding="utf-8")
     require(all(f"color{index} " in kitty for index in range(16)), "Kitty precisa definir as 16 cores ANSI", errors)
     for directory in (root / "assets/fonts/spacemono", root / "assets/desktop/wallpapers"):

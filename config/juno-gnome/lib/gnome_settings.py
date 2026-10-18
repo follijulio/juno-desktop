@@ -113,9 +113,26 @@ class GioBackend:
         except (ImportError, ValueError) as exc:
             raise SettingsError("PyGObject/Gio ausente; instale python-gobject") from exc
         self.Gio, self.GLib = Gio, GLib
+        self.errors = []
+        # dconf reports some read/write failures as GLib warnings instead of
+        # exceptions. A failed read must never become a null backup value.
+        levels = GLib.LogLevelFlags.LEVEL_WARNING | GLib.LogLevelFlags.LEVEL_CRITICAL
+        self.log_handlers = [GLib.log_set_handler(domain, levels, self._backend_log, None)
+                             for domain in ("dconf", "GLib-GIO", "GLib")]
+        self.backend = Gio.SettingsBackend.get_default()
+        if self.backend.__gtype__.name != "DConfSettingsBackend":
+            raise SettingsError("backend dconf indisponível; snapshot não pode usar valores em memória")
+        self.check_health()
         self.source = Gio.SettingsSchemaSource.get_default()
         self.settings = {}
         self.schemas = {}
+
+    def _backend_log(self, domain, level, message, user_data):
+        self.errors.append(str(message))
+
+    def check_health(self):
+        if self.errors:
+            raise SettingsError("falha no backend dconf: " + "; ".join(self.errors))
 
     def setting(self, entry):
         identity = (entry["schema"], entry["path"])
@@ -124,7 +141,7 @@ class GioBackend:
             if schema is None:
                 raise SettingsError("schema GNOME ausente: " + entry["schema"])
             self.schemas[identity] = schema
-            self.settings[identity] = self.Gio.Settings.new_full(schema, None, entry["path"])
+            self.settings[identity] = self.Gio.Settings.new_full(schema, self.backend, entry["path"])
         schema = self.schemas[identity]
         if not schema.has_key(entry["key"]):
             raise SettingsError("chave GNOME ausente: " + entry["key"])
@@ -147,10 +164,13 @@ class GioBackend:
             raise SettingsError("valor fora da faixa permitida: " + entry["key"])
         if writable and not settings.is_writable(entry["key"]):
             raise SettingsError("chave bloqueada pelo sistema: " + entry["key"])
+        self.check_health()
 
     def read(self, entry):
         settings, _ = self.setting(entry)
-        return settings.get_user_value(entry["key"])
+        value = settings.get_user_value(entry["key"])
+        self.check_health()
+        return value
 
     def write(self, entry):
         settings, _ = self.setting(entry)
@@ -159,9 +179,11 @@ class GioBackend:
             settings.reset(entry["key"])
         elif not settings.set_value(entry["key"], value):
             raise SettingsError("falha ao gravar chave: " + entry["key"])
+        self.check_health()
 
     def sync(self):
         self.Gio.Settings.sync()
+        self.check_health()
 
 
 def validate_document(document: dict, backend, writable=False) -> None:

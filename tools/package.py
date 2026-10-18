@@ -30,11 +30,11 @@ def package(root: Path, out: Path) -> tuple[Path, str]:
     paths = []
     for path in sorted(root.rglob("*")):
         relative = path.relative_to(root)
-        if any(part in EXCLUDED for part in relative.parts):
-            continue
         # Diretórios e links quebrados também precisam ser recusados.
         if path.is_symlink():
             raise ValueError(f"Link simbólico inesperado: {relative}")
+        if any(part in EXCLUDED for part in relative.parts):
+            continue
         if path.is_file():
             paths.append((path, relative))
     out.mkdir(parents=True, exist_ok=True)
@@ -60,6 +60,18 @@ def package(root: Path, out: Path) -> tuple[Path, str]:
                     bundle.addfile(entry, io.BytesIO(data))
         digest = hashlib.sha256(staged_archive.read_bytes()).hexdigest()
         staged_checksums.write_text(f"{digest}  {archive.name}\n", encoding="utf-8", newline="\n")
+        # Reabrir e ler todos os membros detecta erros antes da publicação.
+        with tarfile.open(staged_archive, "r:gz") as bundle:
+            members = bundle.getmembers()
+            expected = [f"juno-desktop/{relative.as_posix()}" for _, relative in paths]
+            if [member.name for member in members] != expected:
+                raise ValueError("Conteúdo do pacote preparado não corresponde às entradas")
+            for member in members:
+                stream = bundle.extractfile(member)
+                if not member.isfile() or stream is None or len(stream.read()) != member.size:
+                    raise ValueError(f"Membro inválido no pacote preparado: {member.name}")
+        if staged_checksums.read_text(encoding="utf-8") != f"{digest}  {archive.name}\n":
+            raise ValueError("Checksum preparado inválido")
         previous_archive = prepared / "previous.tar.gz"
         had_archive = archive.exists()
         if had_archive:

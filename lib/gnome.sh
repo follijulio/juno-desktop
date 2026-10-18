@@ -12,10 +12,10 @@ _juno_gsettings_run() (
     juno_require python3
     [[ -f $helper && ! -L $helper ]] || { juno_warn 'Helper GNOME ausente ou inválido.'; return 2; }
     local -a context=(env -u GSETTINGS_SCHEMA_DIR "GSETTINGS_BACKEND=dconf" "HOME=$JUNO_HOME")
-    # Read-only commands need no bus or runtime directory and make no files.
+    # Only static planning avoids dconf entirely. Even reads can create dconf
+    # shared-memory files, so backend operations need a safe runtime directory.
     case $operation in
-        apply|restore) ;;
-        *)
+        desired)
             if "${context[@]}" python3 "$helper" "$operation" --home "$JUNO_HOME" "$@"; then return 0; else return $?; fi
             ;;
     esac
@@ -43,6 +43,8 @@ _juno_gsettings_run() (
 
 juno_gsettings_desired() { _juno_gsettings_run desired --output "$1"; }
 juno_gsettings_snapshot() { _juno_gsettings_run snapshot --output "$1"; }
+# The transaction module also passes a snapshot to this optional argument.
+# shellcheck disable=SC2120
 juno_gsettings_validate() {
     if [[ $# == 0 ]]; then _juno_gsettings_run validate; else _juno_gsettings_run validate --input "$1"; fi
 }
@@ -69,6 +71,8 @@ juno_gnome_plan() {
 juno_validate_gnome() {
     juno_require gnome-shell gsettings python3 dbus-run-session
     gnome-shell --version || return 1
+    # Validate the desired profile, not a snapshot.
+    # shellcheck disable=SC2119
     juno_gsettings_validate || return $?
 }
 
@@ -79,7 +83,7 @@ _juno_display_manager_alias() {
 }
 
 _juno_existing_display_manager() {
-    local alias service state
+    local alias service state active
     alias=$(_juno_display_manager_alias) || return 2
     if [[ -n $alias ]]; then printf '%s\n' "$alias"; return 0; fi
     # Some managers are enabled without installing the usual shared alias.
@@ -88,10 +92,16 @@ _juno_existing_display_manager() {
         case $state in
             enabled|enabled-runtime|linked|linked-runtime|alias)
                 printf '%s.service\n' "$service"; return 0 ;;
+            disabled|static|indirect|generated|transient|not-found|masked|masked-runtime) ;;
+            *) return 2 ;;
         esac
-        if systemctl is-active --quiet "$service.service" 2>/dev/null; then
-            printf '%s.service\n' "$service"; return 0
-        fi
+        active=$(systemctl is-active "$service.service" 2>/dev/null) || :
+        case $active in
+            active|activating|reloading|refreshing|deactivating)
+                printf '%s.service\n' "$service"; return 0 ;;
+            inactive|failed|unknown|not-found) ;;
+            *) return 2 ;;
+        esac
     done
     return 1
 }
@@ -140,6 +150,8 @@ juno_configure_gdm() {
         masked|masked-runtime)
             juno_warn 'GDM está mascarado. A máscara foi preservada; revise-a manualmente se desejar usar GDM.'
             return 0 ;;
+        disabled|static|indirect|generated|transient) ;;
+        *) juno_warn 'Estado GDM inesperado; nenhuma habilitação foi tentada.'; return 1 ;;
     esac
     # Since no existing manager is disabled, interruption can never remove it.
     # Persist the intention so a later run can diagnose a partial enable.

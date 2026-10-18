@@ -15,6 +15,8 @@ juno-desktop/
 |           |-- SpaceMono-Regular.ttf
 |           `-- source.json
 |-- config/
+|   |-- environment.d/
+|   |   `-- 90-juno.conf
 |   |-- hypr/
 |   |   |-- conf/
 |   |   |   |-- appearance.lua
@@ -40,6 +42,16 @@ juno-desktop/
 |   |       |-- runtime.sh
 |   |       |-- wallpaper.sh
 |   |       `-- waybar.sh
+|   |-- juno-gnome/
+|   |   |-- lib/
+|   |   |   `-- gnome_settings.py
+|   |   |-- shell/
+|   |   |   `-- bash.sh
+|   |   |-- templates/
+|   |   |   |-- bashrc
+|   |   |   `-- settings.json
+|   |   |-- oh-my-posh.json
+|   |   `-- terminal-settings.json
 |   |-- kitty/
 |   |   `-- kitty.conf
 |   |-- mako/
@@ -60,9 +72,12 @@ juno-desktop/
 |-- lib/
 |   |-- applications.sh
 |   |-- common.sh
+|   |-- gnome.sh
 |   |-- multilib.sh
 |   |-- packages.sh
+|   |-- posh.sh
 |   |-- preflight.sh
+|   |-- shell.sh
 |   |-- transaction.sh
 |   |-- validate.sh
 |   |-- vscode.sh
@@ -71,21 +86,47 @@ juno-desktop/
 |   |-- applications.sh
 |   |-- brand_test.py
 |   |-- config.lua
+|   |-- gnome.sh
+|   |-- gnome_test.py
 |   |-- installer.sh
 |   |-- integration.sh
 |   |-- multilib.sh
 |   |-- native.sh
+|   |-- posh.sh
 |   |-- run.sh
 |   |-- runtime.sh
 |   |-- session.sh
+|   |-- shell.sh
+|   |-- shell_test.py
+|   |-- tooling_test.py
 |   |-- transaction.sh
+|   |-- transaction_gnome.sh
 |   |-- vscode.sh
+|   |-- vscode_settings_test.cjs
 |   `-- wallpaper.sh
 |-- tools/
 |   |-- catalog_wallpapers.py
 |   |-- check_brand.py
 |   |-- generate_wallpaper.py
-|   `-- package.py
+|   |-- package.py
+|   |-- stage_bashrc.py
+|   `-- vscode_settings.cjs
+|-- vendor/
+|   `-- jsonc-parser/
+|       |-- lib/
+|       |   `-- umd/
+|       |       |-- impl/
+|       |       |   |-- edit.js
+|       |       |   |-- format.js
+|       |       |   |-- parser.js
+|       |       |   |-- scanner.js
+|       |       |   `-- string-intern.js
+|       |       |-- main.d.ts
+|       |       `-- main.js
+|       |-- LICENSE.md
+|       |-- SHA256SUMS
+|       |-- package.json
+|       `-- source.json
 |-- wallpapers/
 |   |-- SHA256SUMS
 |   |-- abstrato-azul.avif

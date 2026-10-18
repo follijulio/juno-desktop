@@ -1,28 +1,40 @@
-# Resultados de valida??o ? 17/10/2026
+# Resultados de validação — 18/10/2026
 
-Ambiente desta migra??o: Windows, PowerShell, Git Bash e Python 3.15. N?o h? WSL ou sess?o GNOME/Arch dispon?vel. Nenhum pacote Linux foi instalado neste Windows.
+Ambiente desta revisão: Windows, PowerShell, Git Bash 5.3.15, Python 3.15, Node.js, jq 1.8.2 e ShellCheck 0.11.0. Não há sessão GNOME/Arch disponível. Nenhum pacote Linux foi instalado neste Windows.
 
-## Baseline e corre??es
+## Baseline e correções
 
-A inspe??o inicial encontrou 32 arquivos Bash e 9 testes Python de marca. Nos testes anteriores informados nesta revis?o, transa??es tinham 18 cen?rios aprovados, multilib 14 e aplicativos 5; esses resultados pertencem ? baseline e n?o certificam a implementa??o GNOME.
+O registro anterior informava 32 arquivos Bash, 9 testes Python de marca, 18 cenários de transação, 14 de multilib e 5 de aplicativos aprovados na baseline. Esses resultados históricos não certificam a implementação GNOME.
 
-`python -B tools/generate_wallpaper.py --check` falhava originalmente. O PNG distribu?do e o gerado possu?am pixels id?nticos, mas bytes IDAT diferentes por causa de zlib-ng. A verifica??o passou a comparar estrutura e pixels PNG e conte?do SVG, preservando o arquivo e seu checksum.
+O PNG distribuído e o gerado tinham pixels idênticos, mas bytes IDAT diferentes por causa da compressão zlib. A reprodução passou a comparar estrutura e pixels PNG e conteúdo SVG, preservando os assets e seus checksums.
 
-O empacotamento agora prepara o arquivo e SHA-256 em tempor?rios, recusa links simb?licos e preserva o pacote anterior em falhas de prepara??o ou publica??o do checksum. Os execut?veis GNOME recebem modo POSIX execut?vel.
+O empacotamento prepara e valida arquivo e SHA-256 em temporários, recusa links simbólicos antes dos filtros e preserva a distribuição anterior diante de falhas cobertas pelos testes. Executáveis recebem modo POSIX e textos usam LF.
 
-## Executado nesta migra??o
+A revisão também corrigiu a leitura indevida de caches Python como texto pelo verificador de identidade e a corrupção de acentos em README e documentação. A arquitetura e o roteiro de aceitação descrevem o perfil GNOME real, sem prometer alterações de teclado, tema ou suspensão que o instalador não aplica.
 
-| Comando/verifica??o | Resultado |
+## Executado nesta revisão
+
+| Comando/verificação | Resultado |
 | --- | --- |
-| `python -B tools/generate_wallpaper.py --check` | Aprovado ap?s corre??o; assets preservados |
-| `python -B tools/catalog_wallpapers.py --check` | 32 arquivos, 31 imagens ?nicas; aprovado |
-| `python -B -m unittest discover -s tests -p '*_test.py'` | 17 cen?rios: 16 aprovados, 1 ignorado por indisponibilidade de symlinks no Windows |
-| Novos testes tooling | Compress?o PNG alternativa, corrup??o/truncamento, pixels alterados, LF/permiss?es, pacote reproduz?vel, falha de leitura, falha de publica??o de SHA e exclus?o de metadados |
+| `python -B tools/check_brand.py` | Aprovado |
+| `python -B tools/generate_wallpaper.py --check` | Aprovado; estrutura/pixels PNG e SVG conferidos, sem regravar assets |
+| `python -B tools/catalog_wallpapers.py --check` | Aprovado; 32 arquivos e 31 imagens únicas |
+| `python -B -m unittest discover -s tests -p '*_test.py'` | 37 cenários: 35 aprovados e 2 ignorados por indisponibilidade de symlinks no Windows |
+| Testes de tooling | Compressão alternativa, corrupção/truncamento PNG, pixels alterados, LF/permissões, pacote reproduzível, falhas de leitura/validação/publicação e exclusão de metadados |
+| Testes de marca | Paleta/fontes, recursos vendorizados, PNG inválido e presença de cache Python sem ocultar erros reais |
+| `bash tests/run.sh` | Aprovado, incluindo sintaxe Bash, ShellCheck, recursos, testes Python e suites de instalação/sessão |
+| Instalador e integração | 10 + 2 cenários aprovados; simulação sem gravação e recuperação v1 antes de falha de rede |
+| Transações de arquivos e GNOME | 18 + 9 cenários aprovados; 6 casos de links POSIX ignorados no Windows |
+| GNOME | 13 cenários de GDM/logind aprovados; 11 testes Python do helper incluídos nos 37 acima |
+| Oh My Posh, Bash e VS Code JSONC | Download, SHA-256, seis fixtures ELF, versão divergente, atualização, retenção, init único, fallback, staging e preservação de comentários/perfis aprovados |
+| Multilib e aplicativos | 14 + 5 cenários aprovados; links reais continuam pendentes no Linux |
+| Instalador VS Code original | 14 cenários aprovados; 1 cenário de ancestral com symlink pendente no Linux |
+| Regressões dos scripts legados | 18 cenários de runtime, 5 de sessão e 19 de wallpaper/bloqueio aprovados; verificações de links reais pendentes |
 
-Os demais resultados da su?te integrada devem ser conferidos ap?s a conclus?o dos m?dulos GNOME e do instalador. Este registro n?o apresenta os testes Hyprland antigos como valida??o do GNOME.
+A revisão confirmou instalação nova com arquivos individuais, backup/restauração v2, recuperação parcial de preferências, recusa de diário truncado e preservação de edições concorrentes. O merge Bash/JSONC usa inputs congelados e os confere antes do backup e da aplicação. Os testes históricos Hyprland são mantidos como regressão dos arquivos preservados e não apresentados como homologação do GNOME.
 
 ## Pendente no ambiente nativo
 
-N?o foram executados GDM, GNOME Shell, PAM, systemd, portais, hardware, parsers/fontes reais do Kitty ou aceita??o gr?fica. Links POSIX, concorr?ncia real de `flock` e persist?ncia `sync -f` tamb?m exigem Linux.
+Não foram executados GDM, GNOME Shell, PAM, systemd, portais, hardware, fontes reais do Kitty ou aceitação gráfica. Links POSIX, concorrência real de `flock` e persistência `sync -f` também exigem Linux.
 
-Execute `bash tests/native.sh` no Arch e complete [o roteiro de aceita??o](VALIDACAO.md). Downloads e comandos simulados nos testes locais n?o certificam aplicativos, jogos, captura, bloqueio, ?udio, imagem AVIF ou suspens?o em uma sess?o real.
+Execute `bash tests/native.sh` no Arch e complete [o roteiro de aceitação](VALIDACAO.md). Downloads e comandos simulados não certificam aplicativos, jogos, capturas, bloqueio, áudio, imagem AVIF ou suspensão em uma sessão real.

@@ -43,10 +43,44 @@ const crlfResult = update(crlf, desired);
 assert.ok(crlfResult.startsWith('\uFEFF'));
 assert.ok(!crlfResult.replaceAll('\r\n', '').includes('\n'), 'Keep CRLF');
 assert.ok(crlfResult.includes('\t"editor.fontSize": 16'));
+const existingProfile = `{
+  "terminal.integrated.profiles.linux": {
+    "Juno Bash": {
+      // Keep profile metadata and environment.
+      "path": "/bin/sh", "args": ["-l"],
+      "icon": "terminal-bash", "env": {"CUSTOM": "keep"}
+    }
+  }
+}`;
+const mergedProfile = update(existingProfile, desired);
+const merged = parser.parse(mergedProfile)['terminal.integrated.profiles.linux']['Juno Bash'];
+assert.equal(merged.path, '/usr/bin/bash');
+assert.deepEqual(merged.args, []);
+assert.equal(merged.icon, 'terminal-bash');
+assert.deepEqual(merged.env, { CUSTOM: 'keep' });
+assert.ok(mergedProfile.includes('// Keep profile metadata and environment.'));
+assert.equal(update(mergedProfile, desired), mergedProfile);
 for (const invalid of ['[]', 'null', '{"editor.fontFamily":',
   '{"editor.fontFamily":"a", "editor.fontFamily":"b"}',
   '{"terminal.integrated.profiles.linux":null}',
-  '{"terminal.integrated.profiles.linux":{"Other":{}, "Other":{}}}']) {
+  '{"terminal.integrated.profiles.linux":{"Other":{}, "Other":{}}}',
+  '{"terminal.integrated.profiles.linux":{"Juno Bash":null}}',
+  '{"terminal.integrated.profiles.linux":{"Juno Bash":{"path":"a", "path":"b"}}}']) {
   assert.throws(() => update(invalid, desired));
+}
+const directory = fs.mkdtempSync(require('node:path').join(require('node:os').tmpdir(), 'juno-jsonc-test-'));
+try {
+  const input = require('node:path').join(directory, 'settings.json');
+  const output = require('node:path').join(directory, 'stage.json');
+  fs.writeFileSync(input, Buffer.concat([Buffer.from('{ // '), Buffer.from([0xFF]), Buffer.from('\n}') ]));
+  fs.writeFileSync(output, 'preserve');
+  const command = require('node:child_process').spawnSync(process.execPath, [
+    require('node:path').join(__dirname, '../tools/vscode_settings.cjs'), input, output,
+    require('node:path').join(__dirname, '../config/juno-gnome/terminal-settings.json'),
+  ], { encoding: 'utf8' });
+  assert.notEqual(command.status, 0, 'Reject invalid UTF-8, including inside comments');
+  assert.equal(fs.readFileSync(output, 'utf8'), 'preserve');
+} finally {
+  fs.rmSync(directory, { recursive: true, force: true });
 }
 console.log('VS Code JSONC: comentários, perfis, BOM, CRLF, conflitos e idempotência validados.');

@@ -23,14 +23,14 @@ expect_failure() {
     fi
 }
 
-Hyprland() { printf '%s\n' "$TEST_VERSION"; }
-TEST_VERSION='Hyprland v0.56.2 built from tag'
-juno_validate_hyprland_version
-ok 'Hyprland 0.56.x aceito'
-for TEST_VERSION in 'Hyprland v0.57.0' 'Hyprland v0.55.4' 'Hyprland v10.56.2' 'erro: pacote indisponível'; do
-    expect_failure juno_validate_hyprland_version
+for package in gnome-shell gnome-session gdm nautilus xdg-desktop-portal-gnome ttf-jetbrains-mono ttf-jetbrains-mono-nerd; do
+    [[ " ${JUNO_PACKAGES[*]} " == *" $package "* ]]
 done
-ok 'versões antigas, futuras e saídas inválidas rejeitadas'
+ok 'componentes GNOME e fontes JetBrains incluídos'
+for package in hyprland waybar rofi mako awww hyprlock hypridle hyprpolkitagent grim slurp; do
+    [[ " ${JUNO_PACKAGES[*]} " != *" $package "* ]]
+done
+ok 'nova instalação dispensa componentes do Hyprland'
 
 HYPRLAND_INSTANCE_SIGNATURE=test-instance
 juno_has_hyprland_session
@@ -64,13 +64,17 @@ sudo() {
 }
 juno_enable_multilib() { :; }
 expect_failure juno_install_packages
-grep -q -- '-Syu --needed -- hyprland' "$PACMAN_CALLS"
+grep -q -- '-Syu --needed -- gnome-shell' "$PACMAN_CALLS"
 [[ -f $(find "$JUNO_STATE/packages" -name '*.before.txt' -print -quit) ]]
 [[ -f $(find "$JUNO_STATE/packages" -name '*.after.txt' -print -quit) ]]
 ok 'falha do pacman preserva snapshots e usa atualização completa'
 
 JUNO_ROOT="$ROOT"
 juno_define_targets
+for target in .config/hypr .config/waybar .config/rofi .config/mako .config/juno .config/xdg-desktop-portal; do
+    [[ " ${JUNO_TARGETS[*]} " != *" $target "* ]]
+done
+ok 'instalação GNOME preserva destinos legados'
 juno_validate_resources >/dev/null
 ok 'integridade dos recursos distribuídos confirmada'
 

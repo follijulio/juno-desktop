@@ -20,13 +20,35 @@ _posh_metadata() {
     ' "$1" >/dev/null || _posh_error 'Metadados oficiais estáveis sem SHA-256 válido; download recusado.'
 }
 
+_posh_architecture() {
+    python3 - "$1" <<'PY'
+from pathlib import Path
+import sys
+
+try:
+    with Path(sys.argv[1]).open('rb') as executable:
+        header = executable.read(64)
+    valid = (len(header) == 64 and header[:7] == b'\x7fELF\x02\x01\x01'
+             and int.from_bytes(header[16:18], 'little') in (2, 3)
+             and int.from_bytes(header[18:20], 'little') == 62
+             and int.from_bytes(header[20:24], 'little') == 1)
+except OSError:
+    valid = False
+sys.exit(0 if valid else 1)
+PY
+}
+
 _posh_binary() {
-    local executable=$1 checksum=$2 version=$3 actual
+    local executable=$1 checksum=$2 version=$3 actual digest
     [[ -f $executable && ! -L $executable && -x $executable ]] || {
         _posh_error 'Executável ausente ou inválido.'; return 1;
     }
-    printf '%s  %s\n' "$checksum" "$executable" | sha256sum --check --status || {
+    digest=$(sha256sum <"$executable") || return 1
+    [[ ${digest%% *} == "$checksum" ]] || {
         _posh_error 'Checksum SHA-256 inválido; versão atual preservada.'; return 1;
+    }
+    _posh_architecture "$executable" || {
+        _posh_error 'O executável precisa ser ELF Linux x86_64; versão atual preservada.'; return 1;
     }
     actual=$("$executable" --version) || return 1
     [[ $actual == "$version" || $actual == "v$version" ]] || {
@@ -46,7 +68,7 @@ juno_install_posh() (
     umask 077
     local app stage='' metadata tag version checksum url release current_target
     _txn_require_lock || return 1
-    juno_require curl jq sha256sum
+    juno_require curl jq sha256sum python3
     _txn_mkdir_home '.local/share/juno-apps/oh-my-posh/releases' || return 1
     app=$(realpath -e -- "$JUNO_HOME/.local/share/juno-apps/oh-my-posh") || return 1
     [[ ! -L $JUNO_HOME/.local/share/juno-apps/oh-my-posh && ! -L $app/releases ]] || {

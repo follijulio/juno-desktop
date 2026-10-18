@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import importlib.util
+import struct
 import tempfile
 import unittest
+import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -65,6 +67,17 @@ class BrandValidationTests(unittest.TestCase):
         BRAND.check_manifest(ROOT / "assets/desktop/wallpapers", errors)
         self.assertEqual(errors, [])
 
+    def test_generated_python_cache_does_not_hide_config_errors(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "__pycache__").mkdir()
+            (root / "__pycache__/helper.cpython-315.pyc").write_bytes(b"\x87binary")
+            (root / "prompt.json").write_text('{"foreground": "#123456"}', encoding="utf-8")
+            errors: list[str] = []
+            BRAND.check_active_config(root, errors)
+            self.assertEqual(len(errors), 1)
+            self.assertIn("#123456", errors[0])
+
     def test_changed_resource_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
@@ -78,6 +91,23 @@ class BrandValidationTests(unittest.TestCase):
         errors: list[str] = []
         BRAND.check_png(ROOT / "assets/desktop/wallpapers/juno-paper.png", errors)
         self.assertEqual(errors, [])
+
+    def test_invalid_png_headers_and_compression_are_reported(self) -> None:
+        def chunk(kind: bytes, payload: bytes) -> bytes:
+            return (struct.pack(">I", len(payload)) + kind + payload
+                    + struct.pack(">I", zlib.crc32(kind + payload) & 0xFFFFFFFF))
+
+        header = struct.pack(">IIBBBBB", 3840, 2160, 8, 3, 0, 0, 0)
+        palette = b"".join(bytes.fromhex(color) for color in sorted(BRAND.PALETTE))
+        invalid_stream = (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header)
+                          + chunk(b"PLTE", palette) + chunk(b"IDAT", b"invalid") + chunk(b"IEND", b""))
+        for data in (b"not a PNG", b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", b"short"), invalid_stream):
+            with self.subTest(size=len(data)), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "invalid.png"
+                path.write_bytes(data)
+                errors: list[str] = []
+                BRAND.check_png(path, errors)
+                self.assertTrue(errors)
 
 
 if __name__ == "__main__":

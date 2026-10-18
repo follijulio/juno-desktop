@@ -1,64 +1,61 @@
 # Arquitetura e recuperação
 
-## Fronteiras
+## Fronteiras e destinos
 
-O ponto de entrada `install.sh` coordena verificação, pacotes, aplicativos, galeria, validação e transações. Não executa scripts remotos. O pacman e a habilitação controlada de multilib usam `sudo`; downloads e instalação do VS Code/Spotify ocorrem como usuário comum. Nenhuma configuração de usuário é criada como root.
+`install.sh` coordena verificações, pacotes, aplicativos, recursos locais, GNOME e transações. O alvo é Arch Linux x86_64, usuário comum, diretórios XDG padrão e systemd/D-Bus funcionais. `sudo` é usado para pacman, multilib e habilitação conservadora do GDM; configurações da conta são preparadas como usuário comum. Scripts de instalação remotos e configurações do usuário não são executados.
 
-O alvo é Arch Linux x86_64 com diretórios XDG padrão, conta comum e systemd/D-Bus funcionais. O compositor suportado é Hyprland 0.56.x. Versões fora dessa faixa abortam antes da substituição de dotfiles; uma atualização de pacotes já realizada permanece registrada.
-
-## Caminhos gerenciados
-
-Todos os caminhos são relativos ao diretório pessoal canônico:
-
-| Destino | Conteúdo |
+| Destino relativo ao diretório pessoal | Conteúdo |
 | --- | --- |
-| `.config/hypr` | Compositor, módulos Lua, bloqueio e inatividade |
-| `.config/waybar` | Configuração base e CSS |
-| `.config/rofi` | Launcher e tema |
-| `.config/mako` | Notificações |
-| `.config/kitty` | Terminal |
-| `.config/juno` | Scripts e biblioteca da sessão |
-| `.config/xdg-desktop-portal` | Seleção dos backends de portal |
+| `.config/kitty` | Terminal Bash, fonte e paleta |
+| `.config/juno-gnome` | Tema Oh My Posh e integração local Bash/GNOME |
 | `.local/share/fonts/juno` | Space Mono original e metadados |
-| `.local/share/juno-desktop` | Wallpaper editorial, fonte vetorial e galeria do usuário |
+| `.local/share/juno-desktop` | Wallpaper editorial e galeria |
+| `.bashrc` | Bloco identificado de inicialização interativa |
+| `.config/Code/User/settings.json` | Fontes e perfil Juno Bash, preservando JSONC |
+| `.config/environment.d/90-juno.conf` | Caminhos dos aplicativos locais e exports Flatpak na sessão GNOME |
 
-Os ancestrais precisam pertencer ao usuário e permanecer dentro do seu diretório pessoal. Um destino gerenciado que já seja link é tratado como objeto; seu conteúdo externo não é seguido. Áreas de staging e estado são privadas.
+As seis chaves GNOME gerenciadas são `font-name`, `document-font-name` e `monospace-font-name` de `org.gnome.desktop.interface`, além de `picture-uri`, `picture-uri-dark` e `picture-options` de `org.gnome.desktop.background`. Nenhuma base dconf inteira é copiada ou carregada.
+
+Ancestrais dos destinos precisam permanecer no diretório pessoal e pertencer à conta. Staging e estado são privados. Arquivos individuais editados, como `.bashrc` e JSONC, devem ser arquivos regulares próprios; links são recusados antes da aplicação. O merge usa uma cópia dos inputs e interrompe se os originais divergirem antes do backup ou da substituição. Destinos Hyprland antigos são aceitos na recuperação de manifestos legados e não fazem parte da aplicação GNOME.
 
 ## Aplicação
 
-1. Validar plataforma, conta, caminhos, sessão encerrada, espaço e HTTPS.
-2. Obter bloqueio por usuário e recuperar um diário anterior, se existir.
-3. Conferir recursos locais; habilitar multilib com backup quando necessário; instalar/atualizar pacotes oficiais, Spotify e VS Code original.
-4. Copiar recursos para staging no mesmo sistema de arquivos de cada destino.
-5. Copiar e conferir a galeria, validar scripts, JSON, famílias de fontes e o parser real do Hyprland.
-6. Comparar com a instalação atual. Se idêntica, remover staging sem backup duplicado.
-7. Criar e verificar backup compactado, manifesto e checksum; guardar cópia anterior para recuperação.
-8. Persistir diário e substituir cada destino por renomeação.
-9. Atualizar cache das fontes e conferir resolução das famílias.
-10. Finalizar o diário e remover áreas temporárias.
+1. Validar plataforma, conta, caminhos, sessão gráfica encerrada, espaço e HTTPS.
+2. Obter bloqueio por usuário e recuperar o diário anterior antes de outra aplicação.
+3. Conferir recursos; preparar multilib com backup quando necessário; atualizar pacotes oficiais e instalar aplicativos e Oh My Posh com integridade verificada.
+4. Preparar recursos no sistema de arquivos de cada destino, editar Bash/JSONC sem executar configurações existentes e registrar valores GNOME anteriores e desejados.
+5. Validar staging, fontes, scripts, JSONC, schemas, tipos e permissões GNOME. Comparar com o estado atual para evitar backup duplicado quando nada mudou.
+6. Criar e verificar backup, manifesto e checksums; conferir que o estado não mudou durante a preparação.
+7. Persistir diário, substituir destinos por renomeação e aplicar somente chaves GNOME autorizadas. Sincronizar e conferir persistência.
+8. Atualizar cache de fontes, conferir famílias, finalizar diário e remover temporários.
+9. Conferir gerenciador de login. Preservar gerenciadores existentes, máscaras e alvo de boot; habilitar GDM somente quando não houver outro gerenciador configurado. Não iniciar ou reiniciar serviços de login.
 
-Cada renomeação é atômica em seu sistema de arquivos. A mudança de vários destinos é uma transação recuperável, não uma única operação atômica global. Sinais tratáveis disparam restauração; interrupções abruptas dependem do diário na execução seguinte.
+Cada renomeação é atômica no sistema de arquivos correspondente. A alteração de vários destinos e chaves GNOME é uma transação recuperável. Sinais tratáveis acionam restauração; interrupções abruptas dependem do diário na execução seguinte.
 
-## Recuperar uma falha
+## Backups e recuperação
 
-Após uma falha normal, confira a mensagem e o registro em `logs/`. Se o instalador restaurou os arquivos anteriores, corrija a causa e execute novamente fora da sessão gráfica.
+O estado fica em `~/.local/state/juno-desktop/`. Backups usam manifesto TSV com versão, usuário, diretório pessoal, destinos e tipos originais, além de `configs.tar.gz` e seu SHA-256. Backups e diários v2 também registram a contagem de destinos para detectar truncamento; backups v2 acrescentam snapshot GNOME por chave e checksum. Ausência de valor explícito é distinta do valor padrão efetivo; a restauração usa `reset()` para voltar ao padrão.
 
-Se existir `pending.tsv`, preserve-o junto das áreas `.juno-stage.*` e dos backups. A próxima execução com bloqueio verifica a correspondência dos caminhos e do conteúdo antes de recuperar. O instalador não executa o conteúdo do diário como código.
+IDs, membros do arquivo e destinos são validados antes da extração. Restaurar cria outro backup do estado substituído. Backups e diários v1 continuam usando o conjunto de destinos registrado originalmente, sem snapshot GNOME. Rollback v2 precisa de PyGObject/Gio, schemas e backend dconf locais, sem internet ou `sudo`.
 
-Se a recuperação for **ambígua**, pare de editar os destinos. Copie o diretório de estado e as áreas temporárias para outro local seguro antes de qualquer intervenção. Compare o manifesto, as cópias `before`, `old`, `new` e `reference` das áreas indicadas pelo diário e os arquivos atuais. Preserve edições antes de mover arquivos. Não remova manualmente o diário para forçar uma nova instalação.
+Após falha, confira mensagem e `logs/`. Se os arquivos anteriores foram restaurados, corrija a causa e execute novamente fora da sessão gráfica. Preserve `pending.tsv`, áreas `.juno-stage.*`, snapshots temporários e backups: a próxima execução verifica caminhos e conteúdo antes de recuperar, sem executar o diário como código.
 
-Os backups usam um manifesto TSV com usuário, diretório pessoal, destinos e tipos originais, além do arquivo `configs.tar.gz` e de `archive.sha256`. IDs e membros do arquivo são validados antes de restaurar. A restauração cria outro backup do estado substituído.
+Se houver recuperação **ambígua**, pare de editar destinos e preserve cópias do estado e temporários. Compare manifesto, snapshots GNOME, cópias `before`, `old`, `new`, `reference` e estado atual antes de intervir. Não remova o diário para forçar outra aplicação. Alterações concorrentes divergentes interrompem a recuperação sem autorizar sua substituição.
 
-Atualizações do pacman, seus hooks e efeitos de pacotes permanecem fora da transação de arquivos. Registros em `packages/` mostram as versões anteriores e posteriores; falhas do pacman nunca autorizam a aplicação dos dotfiles.
+## Operações fora do rollback
 
-Aplicativos também ficam fora do rollback dos dotfiles. Spotify usa instalação Flatpak por usuário e remote validado. O VS Code original fica em `.local/share/juno-apps/vscode`, separado do destino de recursos visuais; versões anteriores e cópias de launchers substituídos são preservadas. O download exige checksum da API HTTPS da Microsoft, identidade do produto e inspeção de caminhos e links do arquivo antes de extrair.
+Atualizações do pacman, seus hooks e pacotes não são desfeitos. Registros em `packages/` mostram versões anteriores e posteriores. Falhas do pacman impedem aplicar configurações.
 
-A habilitação de multilib preserva a configuração anterior do pacman em `/etc/pacman.conf.juno-*.bak`, confere o backup e valida a configuração preparada antes de substituir atomicamente o arquivo. Essa mudança não é desfeita automaticamente após instalação de pacotes. Repositórios personalizados e configurações de teste existentes são preservados.
+Spotify usa Flatpak por usuário com remote validado. VS Code original fica em `.local/share/juno-apps/vscode`, com versões anteriores e launchers substituídos preservados. Sua instalação exige checksum HTTPS da Microsoft, identidade do produto e inspeção de caminhos e links do arquivo antes da extração.
 
-## Segurança da sessão
+Oh My Posh fica em `.local/share/juno-apps/oh-my-posh`, com releases oficiais verificadas por SHA-256 e versão. A ativação ocorre somente após validar o binário; falhas de download ou verificação preservam a versão atual. Binários, aplicativos e seus apontadores de versão ficam fora do rollback; `.bashrc`, tema e preferências do editor ficam dentro dele.
 
-O menu de energia usa ações fixas e confirmação; textos vindos do launcher não viram comandos. Capturas usam caminhos e argumentos protegidos, e cancelar a seleção não gera erro nem arquivo parcial. O histórico adicional de clipboard não é habilitado.
+Multilib preserva `/etc/pacman.conf` em `/etc/pacman.conf.juno-*.bak`, confere o backup e valida a configuração preparada. Essa mudança não é desfeita automaticamente após instalar pacotes; repositórios personalizados e de teste existentes são preservados.
 
-Mako desabilita ícones e markup externos para preservar as cores do tema. O bloqueio usa PAM do pacote oficial Hyprlock, sem senha embutida ou configuração de autenticação alternativa. Portais e agente de autenticação usam serviços da sessão, sem matar indiscriminadamente serviços de outros desktops.
+A habilitação do GDM tem registro separado e não desativa outro gerenciador. Uma tentativa interrompida é diagnosticada na execução seguinte; não há troca automática de gerenciador nem mudança do alvo de boot. Logs indicam como desfazer somente a habilitação realizada.
 
-A escolha do wallpaper aceita apenas IDs do catálogo e arquivos regulares dentro da galeria instalada. Só é persistida após a aplicação bem-sucedida por awww. O bloqueio gera uma configuração privada com o caminho seguro da imagem selecionada; indisponibilidade da imagem não impede o bloqueio. AVIF usa fallback JPG no bloqueio devido à compatibilidade do decoder. Nenhuma captura do conteúdo da sessão é usada como fundo.
+## Sessão GNOME
+
+Painel, launcher, notificações, captura, bloqueio, áudio, brilho e energia pertencem ao GNOME. Scripts históricos Hyprland não são iniciados. A seleção de wallpaper usa GSettings e não é reaplicada no login; reinstalar reaplica o perfil inicial com backup.
+
+Bash recebe integração interativa local, com caminhos protegidos e inicialização sem duplicação. O shell de login da conta não é alterado. Tema, teclado, animações, suspensão e atalhos globais permanecem nas Configurações nativas.

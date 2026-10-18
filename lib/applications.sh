@@ -38,7 +38,7 @@ juno_install_applications() {
 }
 
 juno_applications_plan() {
-    juno_log 'Aplicativos: Firefox, Thunar, mpv, pavucontrol, Steam e Discord pelo pacman.'
+    juno_log 'Aplicativos: Firefox, Nautilus, mpv, pavucontrol, Steam e Discord pelo pacman.'
     juno_log 'Steam: habilitar multilib se necessário, com backup de /etc/pacman.conf. O pacman solicitará o driver Vulkan de 32 bits compatível com sua GPU.'
     juno_log 'Spotify: Flatpak do usuário, com binário upstream e empacotamento comunitário do Flathub.'
     juno_log 'Visual Studio Code: binário estável original da Microsoft, checksum verificado, instalado para este usuário.'

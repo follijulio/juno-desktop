@@ -35,6 +35,36 @@ source "$TEST_REPO/lib/common.sh"
 source "$TEST_REPO/lib/transaction.sh"
 source "$TEST_REPO/lib/posh.sh"
 
+# Exercise the production architecture guard without executing a Linux binary.
+for format in amd64 arm64 elf32 bad-magic truncated shared; do
+    python3 - "$TEST_ROOT/$format" "$format" <<'PY'
+from pathlib import Path
+import sys
+
+header = bytearray(64)
+header[:7] = b'\x7fELF\x02\x01\x01'
+header[16:18] = (3 if sys.argv[2] == 'shared' else 2).to_bytes(2, 'little')
+header[18:20] = (183 if sys.argv[2] == 'arm64' else 62).to_bytes(2, 'little')
+header[20:24] = (1).to_bytes(4, 'little')
+if sys.argv[2] == 'elf32':
+    header[4] = 1
+elif sys.argv[2] == 'bad-magic':
+    header[0] = 0
+elif sys.argv[2] == 'truncated':
+    header = header[:20]
+Path(sys.argv[1]).write_bytes(header)
+PY
+    if [[ $format == amd64 || $format == shared ]]; then
+        _posh_architecture "$TEST_ROOT/$format"
+    elif _posh_architecture "$TEST_ROOT/$format"; then
+        printf 'FALHOU: arquitetura inválida aceita: %s\n' "$format" >&2
+        exit 1
+    fi
+done
+# Download fixtures are scripts on both Windows and Linux; only their ELF check
+# is mocked below. SHA-256, version and metadata checks remain the real code.
+_posh_architecture() { [[ -f $1 ]]; }
+
 if [[ $(uname -s) == MINGW* || $(uname -s) == MSYS* ]]; then
     TEST_REAL_JQ=$(command -v jq)
     jq() {
@@ -110,6 +140,16 @@ juno_install_posh
 
 printf 'modified\n' >>"$JUNO_HOME/.local/share/juno-apps/oh-my-posh/releases/v1.2.4/oh-my-posh"
 if juno_install_posh; then fail 'release instalada adulterada aceita'; fi
+
+fixture
+juno_install_posh
+TEST_VERSION=1.2.4; make_release
+printf '#!/usr/bin/env bash\nprintf "1.2.9\\n"\n' >"$TEST_BINARY"
+checksum=$(sha256sum -- "$TEST_BINARY"); checksum=${checksum%% *}
+jq --arg digest "sha256:$checksum" '.assets[0].digest=$digest' "$TEST_METADATA" >"$TEST_METADATA.tmp"
+mv -- "$TEST_METADATA.tmp" "$TEST_METADATA"
+if juno_install_posh; then fail 'versão divergente aceita'; fi
+[[ $(current_version) == *v1.2.3 ]] || fail 'versão divergente substituiu a instalação anterior'
 
 for filter in '.draft=true' '.prerelease=true' '.assets[0].digest=""' \
     '.assets[0].browser_download_url="https://example.com/posh"' \
