@@ -1,0 +1,352 @@
+{
+  "name": "Juno application icons",
+  "version": 1,
+  "license": "CC0-1.0",
+  "generator": "tools/generate_icons.py",
+  "artwork": "Original vector drawings by Juno Desktop contributors",
+  "design": "Colorful rounded tiles, cream illustrations, dark outlines and hard shadows",
+  "fallback": [
+    "Adwaita",
+    "hicolor"
+  ],
+  "icons": [
+    {
+      "name": "firefox",
+      "aliases": [
+        "org.mozilla.firefox",
+        "firefox-esr"
+      ]
+    },
+    {
+      "name": "org.gnome.Nautilus",
+      "aliases": [
+        "system-file-manager",
+        "nautilus"
+      ]
+    },
+    {
+      "name": "kitty",
+      "aliases": [
+        "net.kovidgoyal.kitty"
+      ]
+    },
+    {
+      "name": "mpv",
+      "aliases": [
+        "io.mpv.Mpv"
+      ]
+    },
+    {
+      "name": "pavucontrol",
+      "aliases": [
+        "org.pulseaudio.pavucontrol",
+        "multimedia-volume-control"
+      ]
+    },
+    {
+      "name": "steam",
+      "aliases": [
+        "com.valvesoftware.Steam"
+      ]
+    },
+    {
+      "name": "discord",
+      "aliases": [
+        "com.discordapp.Discord"
+      ]
+    },
+    {
+      "name": "spotify",
+      "aliases": [
+        "com.spotify.Client"
+      ]
+    },
+    {
+      "name": "visual-studio-code",
+      "aliases": [
+        "code",
+        "code-oss",
+        "com.visualstudio.code",
+        "vscode"
+      ]
+    },
+    {
+      "name": "org.gnome.Settings",
+      "aliases": [
+        "gnome-control-center",
+        "preferences-system"
+      ]
+    },
+    {
+      "name": "org.gnome.Contacts",
+      "aliases": [
+        "gnome-contacts",
+        "address-book"
+      ]
+    },
+    {
+      "name": "org.gnome.Calendar",
+      "aliases": [
+        "gnome-calendar",
+        "office-calendar"
+      ]
+    },
+    {
+      "name": "org.gnome.clocks",
+      "aliases": [
+        "gnome-clocks"
+      ]
+    },
+    {
+      "name": "org.gnome.Weather",
+      "aliases": [
+        "gnome-weather"
+      ]
+    },
+    {
+      "name": "org.gnome.Maps",
+      "aliases": [
+        "gnome-maps"
+      ]
+    },
+    {
+      "name": "org.gnome.Music",
+      "aliases": [
+        "gnome-music",
+        "multimedia-player"
+      ]
+    },
+    {
+      "name": "org.gnome.Totem",
+      "aliases": [
+        "totem",
+        "org.gnome.Showtime"
+      ]
+    },
+    {
+      "name": "org.gnome.Photos",
+      "aliases": [
+        "gnome-photos",
+        "org.gnome.Loupe",
+        "org.gnome.eog",
+        "eog"
+      ]
+    },
+    {
+      "name": "org.gnome.Snapshot",
+      "aliases": [
+        "org.gnome.Cheese",
+        "cheese",
+        "qv4l2",
+        "qvidcap"
+      ]
+    },
+    {
+      "name": "org.gnome.SimpleScan",
+      "aliases": [
+        "simple-scan"
+      ]
+    },
+    {
+      "name": "org.gnome.Calculator",
+      "aliases": [
+        "gnome-calculator",
+        "accessories-calculator"
+      ]
+    },
+    {
+      "name": "org.gnome.TextEditor",
+      "aliases": [
+        "org.gnome.gedit",
+        "gedit",
+        "accessories-text-editor",
+        "gvim"
+      ]
+    },
+    {
+      "name": "org.gnome.Terminal",
+      "aliases": [
+        "org.gnome.Console",
+        "org.gnome.Ptyxis",
+        "utilities-terminal",
+        "gnome-terminal"
+      ]
+    },
+    {
+      "name": "org.gnome.SystemMonitor",
+      "aliases": [
+        "gnome-system-monitor",
+        "utilities-system-monitor",
+        "htop"
+      ]
+    },
+    {
+      "name": "org.gnome.DiskUtility",
+      "aliases": [
+        "gnome-disks",
+        "palimpsest"
+      ]
+    },
+    {
+      "name": "org.gnome.FileRoller",
+      "aliases": [
+        "file-roller",
+        "utilities-file-archiver"
+      ]
+    },
+    {
+      "name": "org.gnome.Characters",
+      "aliases": [
+        "gnome-characters",
+        "accessories-character-map",
+        "gucharmap"
+      ]
+    },
+    {
+      "name": "org.gnome.Yelp",
+      "aliases": [
+        "yelp",
+        "help-browser"
+      ]
+    },
+    {
+      "name": "org.gnome.Software",
+      "aliases": [
+        "gnome-software",
+        "system-software-install"
+      ]
+    },
+    {
+      "name": "org.gnome.Connections",
+      "aliases": [
+        "gnome-connections",
+        "org.gnome.Boxes",
+        "gnome-boxes"
+      ]
+    },
+    {
+      "name": "libreoffice-writer",
+      "aliases": [
+        "libreoffice-startcenter",
+        "libreoffice",
+        "org.libreoffice.LibreOffice.writer"
+      ]
+    },
+    {
+      "name": "libreoffice-calc",
+      "aliases": [
+        "org.libreoffice.LibreOffice.calc"
+      ]
+    },
+    {
+      "name": "org.gnome.Evince",
+      "aliases": [
+        "evince",
+        "org.gnome.Papers",
+        "xreader"
+      ]
+    },
+    {
+      "name": "cmake",
+      "aliases": [
+        "CMakeSetup",
+        "cmake-gui"
+      ]
+    },
+    {
+      "name": "QtProject-qtcreator",
+      "aliases": [
+        "org.qt-project.qtcreator",
+        "qtcreator"
+      ]
+    },
+    {
+      "name": "org.gnome.Screenshot",
+      "aliases": [
+        "gnome-screenshot",
+        "applets-screenshooter"
+      ]
+    },
+    {
+      "name": "org.gnome.Extensions",
+      "aliases": [
+        "org.gnome.Shell.Extensions"
+      ]
+    },
+    {
+      "name": "org.gnome.Decibels",
+      "aliases": [
+        "decibels"
+      ]
+    },
+    {
+      "name": "org.gnome.Epiphany",
+      "aliases": [
+        "epiphany",
+        "web-browser"
+      ]
+    },
+    {
+      "name": "org.gnome.Logs",
+      "aliases": [
+        "gnome-logs"
+      ]
+    },
+    {
+      "name": "org.gnome.Tour",
+      "aliases": [
+        "gnome-tour"
+      ]
+    },
+    {
+      "name": "org.gnome.baobab",
+      "aliases": [
+        "baobab"
+      ]
+    },
+    {
+      "name": "org.gnome.font-viewer",
+      "aliases": [
+        "gnome-font-viewer"
+      ]
+    },
+    {
+      "name": "org.gnome.tweaks",
+      "aliases": [
+        "gnome-tweaks",
+        "gnome-tweak-tool"
+      ]
+    },
+    {
+      "name": "gnome-color-manager",
+      "aliases": [
+        "org.gnome.ColorProfileViewer"
+      ]
+    },
+    {
+      "name": "preferences-system-network",
+      "aliases": [
+        "rygel",
+        "nm-connection-editor"
+      ]
+    },
+    {
+      "name": "ibus-setup",
+      "aliases": [
+        "org.freedesktop.IBus.Setup"
+      ]
+    },
+    {
+      "name": "org.freedesktop.MalcontentControl",
+      "aliases": [
+        "malcontent-control"
+      ]
+    },
+    {
+      "name": "hwloc",
+      "aliases": [
+        "lstopo"
+      ]
+    }
+  ]
+}

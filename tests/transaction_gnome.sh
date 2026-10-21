@@ -15,32 +15,48 @@ export PATH="$TEST_ROOT/mock-bin:$PATH"
 fail() { printf 'FALHOU: %s\n' "$*" >&2; return 1; }
 expect_absent() { [[ ! -e $1 && ! -L $1 ]] || fail "arquivo deveria estar ausente: $1"; }
 
-# The two tab-separated mock values stand in for validated GVariant snapshots;
+# The tab-separated mock values stand in for validated GVariant snapshots;
 # the helper's real JSON/schema validation has separate Python tests.
-juno_gsettings_snapshot() { printf '%s\t%s\n' "$MOCK_FIRST" "$MOCK_SECOND" > "$1"; }
-juno_gsettings_desired() { printf 'Roboto\tGhibli\n' > "$1"; }
+juno_gsettings_snapshot() {
+    local first second icons
+    MOCK_SNAPSHOT_SCOPED=0
+    if [[ $# == 2 ]]; then
+        MOCK_SNAPSHOT_SCOPED=1
+        IFS=$'\t' read -r first second icons < "$2"
+        if [[ -z $icons ]]; then
+            printf '%s\t%s\n' "$MOCK_FIRST" "$MOCK_SECOND" > "$1"
+            return 0
+        fi
+    fi
+    printf '%s\t%s\t%s\n' "$MOCK_FIRST" "$MOCK_SECOND" "$MOCK_ICONS" > "$1"
+}
+juno_gsettings_desired() { printf 'Roboto\tGhibli\tJuno\n' > "$1"; }
 juno_gsettings_validate() { [[ -f $1 ]]; }
 juno_gsettings_verify() {
-    local first second
+    local first second icons
     [[ ${MOCK_UNAVAILABLE:-0} == 0 ]] || return 2
-    IFS=$'\t' read -r first second < "$1"
-    [[ $MOCK_FIRST == "$first" && $MOCK_SECOND == "$second" ]]
+    IFS=$'\t' read -r first second icons < "$1"
+    [[ $MOCK_FIRST == "$first" && $MOCK_SECOND == "$second" && ( -z $icons || $MOCK_ICONS == "$icons" ) ]]
 }
 juno_gsettings_restore() {
-    local first second
+    local first second icons
     [[ ${MOCK_UNAVAILABLE:-0} == 0 ]] || return 2
-    IFS=$'\t' read -r first second < "$1"
+    IFS=$'\t' read -r first second icons < "$1"
     MOCK_FIRST=$first
     if [[ $MOCK_FAIL_ONCE == 1 ]]; then MOCK_FAIL_ONCE=0; return 1; fi
     MOCK_SECOND=$second
+    [[ -z $icons ]] || MOCK_ICONS=$icons
+    return 0
 }
 juno_gsettings_recovery_check() {
-    local before_first before_second desired_first desired_second
+    local before_first before_second before_icons desired_first desired_second desired_icons
     [[ ${MOCK_UNAVAILABLE:-0} == 0 ]] || return 2
-    IFS=$'\t' read -r before_first before_second < "$1"
-    IFS=$'\t' read -r desired_first desired_second < "$2"
+    IFS=$'\t' read -r before_first before_second before_icons < "$1"
+    IFS=$'\t' read -r desired_first desired_second desired_icons < "$2"
+    [[ ( -z $before_icons && -z $desired_icons ) || ( -n $before_icons && -n $desired_icons ) ]] || return 2
     [[ ( $MOCK_FIRST == "$before_first" || $MOCK_FIRST == "$desired_first" ) &&
-       ( $MOCK_SECOND == "$before_second" || $MOCK_SECOND == "$desired_second" ) ]]
+       ( $MOCK_SECOND == "$before_second" || $MOCK_SECOND == "$desired_second" ) &&
+       ( -z $before_icons || $MOCK_ICONS == "$before_icons" || $MOCK_ICONS == "$desired_icons" ) ]]
 }
 
 fixture() {
@@ -48,12 +64,14 @@ fixture() {
     mkdir "$CASE_ROOT/home with spaces" "$CASE_ROOT/source"
     JUNO_HOME=$(realpath -e "$CASE_ROOT/home with spaces")
     JUNO_STATE="$JUNO_HOME/.local/state/juno-desktop"
-    JUNO_TARGETS=(.bashrc .config/juno-gnome)
-    JUNO_SOURCES=("$CASE_ROOT/source/bashrc" "$CASE_ROOT/source/gnome")
+    JUNO_TARGETS=(.bashrc .config/juno-gnome .local/share/icons/Juno)
+    JUNO_SOURCES=("$CASE_ROOT/source/bashrc" "$CASE_ROOT/source/gnome" "$CASE_ROOT/source/icons")
     printf 'new rc\n' > "${JUNO_SOURCES[0]}"
     mkdir "${JUNO_SOURCES[1]}"
     printf 'new config\n' > "${JUNO_SOURCES[1]}/value"
-    MOCK_FIRST=null; MOCK_SECOND=original; MOCK_FAIL_ONCE=0; MOCK_UNAVAILABLE=0
+    mkdir "${JUNO_SOURCES[2]}"
+    printf 'new icons\n' > "${JUNO_SOURCES[2]}/index.theme"
+    MOCK_FIRST=null; MOCK_SECOND=original; MOCK_ICONS=Previous; MOCK_SNAPSHOT_SCOPED=0; MOCK_FAIL_ONCE=0; MOCK_UNAVAILABLE=0
     source "$ROOT/lib/transaction.sh"
     JUNO_GSETTINGS_ENABLED=1
     txn_lock
@@ -67,7 +85,8 @@ test_new_and_idempotent() {
     [[ -f $(txn_stage_for .bashrc) ]] || fail 'staging de arquivo não disponível'
     expect_absent "$(txn_stage_for .config/juno-gnome)/__pycache__"
     txn_backup; txn_apply; txn_finalize
-    [[ $(cat "$JUNO_HOME/.bashrc") == 'new rc' && $MOCK_FIRST == Roboto && $MOCK_SECOND == Ghibli ]]
+    [[ $(cat "$JUNO_HOME/.bashrc") == 'new rc' && $MOCK_FIRST == Roboto && $MOCK_SECOND == Ghibli && $MOCK_ICONS == Juno ]]
+    [[ $(cat "$JUNO_HOME/.local/share/icons/Juno/index.theme") == 'new icons' ]]
     grep -q $'^juno-backup\t2\t' "$JUNO_STATE/backups/$JUNO_BACKUP_ID/manifest.tsv"
     local backup=$JUNO_BACKUP_ID
     txn_prepare
@@ -82,15 +101,16 @@ test_restore_values_and_absence() {
     txn_prepare; txn_backup; txn_apply; txn_finalize
     local initial=$JUNO_BACKUP_ID
     printf 'edited rc\n' > "$JUNO_HOME/.bashrc"
-    MOCK_FIRST=custom; MOCK_SECOND=photo
+    MOCK_FIRST=custom; MOCK_SECOND=photo; MOCK_ICONS=Edited
     txn_restore "$initial"
     local saved_edits=$JUNO_BACKUP_ID
-    [[ $MOCK_FIRST == null && $MOCK_SECOND == original ]]
+    [[ $MOCK_FIRST == null && $MOCK_SECOND == original && $MOCK_ICONS == Previous && $MOCK_SNAPSHOT_SCOPED == 1 ]]
     expect_absent "$JUNO_HOME/.bashrc"
     expect_absent "$JUNO_HOME/.config/juno-gnome"
+    expect_absent "$JUNO_HOME/.local/share/icons/Juno"
     txn_finalize
     txn_restore "$saved_edits"
-    [[ $(cat "$JUNO_HOME/.bashrc") == 'edited rc' && $MOCK_FIRST == custom && $MOCK_SECOND == photo ]]
+    [[ $(cat "$JUNO_HOME/.bashrc") == 'edited rc' && $MOCK_FIRST == custom && $MOCK_SECOND == photo && $MOCK_ICONS == Edited ]]
     txn_finalize
 }
 
@@ -162,6 +182,58 @@ test_missing_backend_preserves_journal() {
     txn_recover
 }
 
+prepare_legacy_v2_backup() {
+    local -a current_targets=("${JUNO_TARGETS[@]}") current_sources=("${JUNO_SOURCES[@]}")
+    JUNO_TARGETS=(.bashrc .config/juno-gnome)
+    JUNO_SOURCES=("${current_sources[0]}" "${current_sources[1]}")
+    txn_prepare
+    # The pre-icons GNOME version managed two mock values and two file targets.
+    printf 'null\toriginal\n' > "$JUNO_SETTINGS_STAGE/before.json"
+    printf 'Roboto\tGhibli\n' > "$JUNO_SETTINGS_STAGE/desired.json"
+    txn_backup; txn_apply; txn_finalize
+    LEGACY_BACKUP=$JUNO_BACKUP_ID
+    JUNO_TARGETS=("${current_targets[@]}")
+    JUNO_SOURCES=("${current_sources[@]}")
+    printf 'edited rc\n' > "$JUNO_HOME/.bashrc"
+    mkdir -p "$JUNO_HOME/.local/share/icons/Juno"
+    printf 'user icons\n' > "$JUNO_HOME/.local/share/icons/Juno/index.theme"
+    MOCK_FIRST=custom; MOCK_SECOND=photo; MOCK_ICONS=Keep
+}
+
+test_old_v2_restore_preserves_new_icons() {
+    fixture
+    prepare_legacy_v2_backup
+    txn_restore "$LEGACY_BACKUP"
+    [[ $MOCK_SNAPSHOT_SCOPED == 1 && $MOCK_FIRST == null && $MOCK_SECOND == original && $MOCK_ICONS == Keep ]]
+    [[ $(cat "$JUNO_HOME/.local/share/icons/Juno/index.theme") == 'user icons' ]]
+    [[ ${#JUNO_TARGETS[@]} == 2 ]]
+    txn_finalize
+}
+
+test_old_v2_restore_interruption_preserves_new_icons() {
+    fixture
+    prepare_legacy_v2_backup
+    txn_restore "$LEGACY_BACKUP"
+    MOCK_ICONS=Concurrent
+    txn_recover
+    [[ $MOCK_FIRST == custom && $MOCK_SECOND == photo && $MOCK_ICONS == Concurrent ]]
+    [[ $(cat "$JUNO_HOME/.bashrc") == 'edited rc' ]]
+    [[ $(cat "$JUNO_HOME/.local/share/icons/Juno/index.theme") == 'user icons' ]]
+    expect_absent "$JUNO_STATE/pending.tsv"
+}
+
+test_new_icon_preference_concurrent_edit_preserved() {
+    fixture
+    txn_prepare; txn_backup; txn_apply
+    MOCK_ICONS=Concurrent
+    if txn_recover; then fail 'edição concorrente de ícones ignorada'; fi
+    [[ $MOCK_ICONS == Concurrent && -f $JUNO_STATE/pending.tsv ]]
+    MOCK_ICONS=Juno
+    txn_recover
+    [[ $MOCK_ICONS == Previous ]]
+    expect_absent "$JUNO_HOME/.local/share/icons/Juno"
+}
+
 test_legacy_restore_independent_targets() {
     fixture
     JUNO_GSETTINGS_ENABLED=0
@@ -183,7 +255,9 @@ test_legacy_restore_independent_targets() {
 passed=0
 for scenario in test_new_and_idempotent test_restore_values_and_absence test_partial_settings_failure \
     test_concurrent_setting_preserved test_settings_changed_before_apply test_merge_input_changed_before_backup test_truncated_journal \
-    test_missing_backend_preserves_journal test_legacy_restore_independent_targets; do
+    test_missing_backend_preserves_journal test_old_v2_restore_preserves_new_icons \
+    test_old_v2_restore_interruption_preserves_new_icons test_new_icon_preference_concurrent_edit_preserved \
+    test_legacy_restore_independent_targets; do
     printf 'Teste GNOME/transação: %s\n' "$scenario"
     "$scenario"
     passed=$((passed + 1))

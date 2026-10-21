@@ -2,7 +2,8 @@
 """Small, allowlisted GNOME settings profile and per-key transaction snapshots.
 
 Snapshots store the explicit user value, not the effective schema default.
-Only the six keys below are writable; no dconf database is copied or loaded.
+Only the keys below are writable; no dconf database is copied or loaded.
+Version 1 snapshots retain their original six-key scope when restored.
 The desired command and static validation do not require PyGObject.
 """
 
@@ -18,7 +19,7 @@ from pathlib import Path
 
 INTERFACE = "org.gnome.desktop.interface"
 BACKGROUND = "org.gnome.desktop.background"
-PROFILE = (
+LEGACY_PROFILE = (
     (INTERFACE, "font-name", "s", "Roboto 11"),
     (INTERFACE, "document-font-name", "s", "Roboto 11"),
     (INTERFACE, "monospace-font-name", "s", "Space Mono 11"),
@@ -26,7 +27,13 @@ PROFILE = (
     (BACKGROUND, "picture-uri-dark", "s", None),
     (BACKGROUND, "picture-options", "s", "zoom"),
 )
+PROFILE = LEGACY_PROFILE + ((INTERFACE, "icon-theme", "s", "Juno"),)
+SNAPSHOT_VERSION = 2
 ALLOWED = {(schema, None, key): kind for schema, key, kind, _ in PROFILE}
+ALLOWED_BY_VERSION = {
+    1: {(schema, None, key): kind for schema, key, kind, _ in LEGACY_PROFILE},
+    2: ALLOWED,
+}
 
 
 class SettingsError(Exception):
@@ -50,16 +57,17 @@ def desired_document(home: Path) -> dict:
     for schema, key, kind, value in PROFILE:
         entries.append({"schema": schema, "path": None, "key": key, "type": kind,
                         "value": string_variant(wallpaper if value is None else value)})
-    return {"version": 1, "entries": entries}
+    return {"version": SNAPSHOT_VERSION, "entries": entries}
 
 
 def validate_shape(document: object) -> dict:
     if not isinstance(document, dict) or set(document) != {"version", "entries"}:
         raise SettingsError("formato de snapshot inválido")
-    if type(document["version"]) is not int or document["version"] != 1:
+    if type(document["version"]) is not int or document["version"] not in ALLOWED_BY_VERSION:
         raise SettingsError("versão de snapshot não suportada")
+    allowed = ALLOWED_BY_VERSION[document["version"]]
     entries = document["entries"]
-    if not isinstance(entries, list) or len(entries) != len(ALLOWED):
+    if not isinstance(entries, list) or len(entries) != len(allowed):
         raise SettingsError("snapshot precisa conter todas as chaves gerenciadas")
     seen = set()
     for entry in entries:
@@ -68,9 +76,9 @@ def validate_shape(document: object) -> dict:
         if not isinstance(entry["schema"], str) or not isinstance(entry["key"], str) or entry["path"] is not None:
             raise SettingsError("schema, chave ou caminho não autorizado")
         identity = (entry["schema"], entry["path"], entry["key"])
-        if identity not in ALLOWED or identity in seen:
+        if identity not in allowed or identity in seen:
             raise SettingsError("chave não autorizada ou repetida")
-        if entry["type"] != ALLOWED[identity]:
+        if entry["type"] != allowed[identity]:
             raise SettingsError("tipo de chave inesperado")
         if entry["value"] is not None and not isinstance(entry["value"], str):
             raise SettingsError("valor deve ser texto GVariant ou null")
@@ -200,7 +208,7 @@ def snapshot(document: dict, backend) -> dict:
         value = backend.read(entry)
         entry["value"] = None if value is None else value.print_(True)
         entries.append(entry)
-    return {"version": 1, "entries": entries}
+    return {"version": document["version"], "entries": entries}
 
 
 def equal_value(first, second) -> bool:
@@ -215,6 +223,12 @@ def verify(document: dict, backend) -> None:
 
 
 def recovery_check(before: dict, desired: dict, backend) -> None:
+    validate_shape(before)
+    validate_shape(desired)
+    before_keys = {(entry["schema"], entry["path"], entry["key"]) for entry in before["entries"]}
+    desired_keys = {(entry["schema"], entry["path"], entry["key"]) for entry in desired["entries"]}
+    if before_keys != desired_keys:
+        raise SettingsError("snapshots de recuperação têm conjuntos de chaves diferentes")
     validate_document(before, backend, writable=True)
     validate_document(desired, backend, writable=True)
     desired_entries = {(entry["schema"], entry["path"], entry["key"]): entry for entry in desired["entries"]}
@@ -243,7 +257,7 @@ def main(argv=None) -> int:
         sub.add_argument("--home", type=Path, required=True)
         if command in ("desired", "snapshot"):
             sub.add_argument("--output", type=Path, required=True)
-        if command in ("validate", "restore", "verify"):
+        if command in ("snapshot", "validate", "restore", "verify"):
             sub.add_argument("--input", type=Path, required=command == "restore")
         if command == "validate":
             sub.add_argument("--static", action="store_true", help="valida somente formato, sem importar Gio")
@@ -264,7 +278,7 @@ def main(argv=None) -> int:
         if args.command == "validate":
             validate_document(document, backend, writable=True)
         elif args.command == "snapshot":
-            write_document(args.output, snapshot(profile, backend))
+            write_document(args.output, snapshot(document, backend))
         elif args.command in ("apply", "restore"):
             apply_document(document, backend)
         elif args.command == "verify":

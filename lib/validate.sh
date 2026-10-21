@@ -19,6 +19,20 @@ juno_validate_resources() {
         (cd -- "$JUNO_ROOT/vendor/jsonc-parser" && sha256sum --check --strict SHA256SUMS) ||
             juno_die 'A integridade do parser JSONC não foi confirmada.'
     fi
+    juno_validate_icons "$JUNO_ROOT/assets/icons/Juno"
+}
+
+juno_validate_icons() {
+    local theme=$1
+    [[ -d $theme && ! -L $theme && -f $theme/index.theme && -f $theme/SHA256SUMS ]] ||
+        juno_die 'O tema de ícones Juno está incompleto.'
+    (cd -- "$theme" && sha256sum --check --strict SHA256SUMS) >/dev/null ||
+        juno_die 'A integridade do tema de ícones não foi confirmada.'
+    # A fresh Arch may not have Python until pacman installs it. The checksum
+    # check still runs before packages; staged SVGs are always parsed below.
+    if command -v python3 >/dev/null 2>&1; then
+        python3 "$JUNO_ROOT/tools/check_icons.py" "$theme" || juno_die 'Tema de ícones inválido.'
+    fi
 }
 
 juno_validate_staged() {
@@ -47,6 +61,7 @@ juno_validate_staged() {
         juno_validate_font_family "$family"
     done
     juno_gsettings_validate
+    juno_validate_icons "$(txn_stage_for '.local/share/icons/Juno')"
 }
 
 juno_validate_font_family() {

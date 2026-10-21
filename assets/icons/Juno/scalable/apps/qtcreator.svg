@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>Qt Creator — Juno</title>
+  <desc>Original application icon: a cream illustration on a colored rounded tile.</desc>
+  <rect x="4" y="6" width="56" height="56" rx="12" fill="#24343a" opacity=".2"/>
+  <rect x="4" y="3" width="56" height="56" rx="12" fill="#279963"/>
+  <g transform="rotate(-6 32 32)" stroke="#24343a" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+    <rect x="13" y="14" width="42" height="37" rx="2" fill="#24343a" stroke="none"/><rect x="10" y="11" width="42" height="37" rx="2" fill="#fff4d7"/><path d="M34 22c-3-6-14-5-14 7v6c0 12 15 12 15 0v-6c0-3 0-5-1-7zm-5 15 11 10M43 20v17m-4-12h9" fill="none"/>
+  </g>
+</svg>

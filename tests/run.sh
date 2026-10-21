@@ -15,6 +15,8 @@ fi
 python3 tools/check_brand.py
 python3 tools/generate_wallpaper.py --check
 python3 tools/catalog_wallpapers.py --check
+python3 tools/generate_icons.py --check
+python3 tools/check_icons.py
 python3 -m unittest discover -s tests -p '*_test.py'
 bash tests/installer.sh
 bash tests/integration.sh

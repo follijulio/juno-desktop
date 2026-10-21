@@ -20,6 +20,7 @@ juno_define_targets() {
         .config/kitty .config/juno-gnome .local/share/fonts/juno
         .local/share/juno-desktop .bashrc .config/Code/User/settings.json
         .config/environment.d/90-juno.conf
+        .local/share/icons/Juno
     )
     # shellcheck disable=SC2034
     JUNO_SOURCES=(
@@ -28,6 +29,7 @@ juno_define_targets() {
         "$JUNO_ROOT/config/juno-gnome/templates/bashrc"
         "$JUNO_ROOT/config/juno-gnome/templates/settings.json"
         "$JUNO_ROOT/config/environment.d/90-juno.conf"
+        "$JUNO_ROOT/assets/icons/Juno"
     )
 }
 

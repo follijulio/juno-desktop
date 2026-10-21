@@ -13,8 +13,9 @@
 | `.bashrc` | Bloco identificado de inicialização interativa |
 | `.config/Code/User/settings.json` | Fontes e perfil Juno Bash, preservando JSONC |
 | `.config/environment.d/90-juno.conf` | Caminhos dos aplicativos locais e exports Flatpak na sessão GNOME |
+| `.local/share/icons/Juno` | Tema SVG local dos ícones de aplicativos e metadados de integridade |
 
-As seis chaves GNOME gerenciadas são `font-name`, `document-font-name` e `monospace-font-name` de `org.gnome.desktop.interface`, além de `picture-uri`, `picture-uri-dark` e `picture-options` de `org.gnome.desktop.background`. Nenhuma base dconf inteira é copiada ou carregada.
+As sete chaves GNOME gerenciadas são `font-name`, `document-font-name`, `monospace-font-name` e `icon-theme` de `org.gnome.desktop.interface`, além de `picture-uri`, `picture-uri-dark` e `picture-options` de `org.gnome.desktop.background`. Nenhuma base dconf inteira é copiada ou carregada.
 
 Ancestrais dos destinos precisam permanecer no diretório pessoal e pertencer à conta. Staging e estado são privados. Arquivos individuais editados, como `.bashrc` e JSONC, devem ser arquivos regulares próprios; links são recusados antes da aplicação. O merge usa uma cópia dos inputs e interrompe se os originais divergirem antes do backup ou da substituição. Destinos Hyprland antigos são aceitos na recuperação de manifestos legados e não fazem parte da aplicação GNOME.
 
@@ -38,6 +39,8 @@ O estado fica em `~/.local/state/juno-desktop/`. Backups usam manifesto TSV com 
 
 IDs, membros do arquivo e destinos são validados antes da extração. Restaurar cria outro backup do estado substituído. Backups e diários v1 continuam usando o conjunto de destinos registrado originalmente, sem snapshot GNOME. Rollback v2 precisa de PyGObject/Gio, schemas e backend dconf locais, sem internet ou `sudo`.
 
+O documento JSON de preferências tem versão independente do manifesto: snapshots GNOME v1 contêm exatamente as seis chaves anteriores; v2 contêm as sete, incluindo `icon-theme`. Ao restaurar, o snapshot anterior usa o próprio backup como modelo de escopo. Assim, backups e diários antigos não passam a alterar uma preferência que nunca registraram. A recuperação recusa conjuntos de chaves divergentes antes de gravar valores.
+
 Após falha, confira mensagem e `logs/`. Se os arquivos anteriores foram restaurados, corrija a causa e execute novamente fora da sessão gráfica. Preserve `pending.tsv`, áreas `.juno-stage.*`, snapshots temporários e backups: a próxima execução verifica caminhos e conteúdo antes de recuperar, sem executar o diário como código.
 
 Se houver recuperação **ambígua**, pare de editar destinos e preserve cópias do estado e temporários. Compare manifesto, snapshots GNOME, cópias `before`, `old`, `new`, `reference` e estado atual antes de intervir. Não remova o diário para forçar outra aplicação. Alterações concorrentes divergentes interrompem a recuperação sem autorizar sua substituição.
@@ -47,6 +50,8 @@ Se houver recuperação **ambígua**, pare de editar destinos e preserve cópias
 Atualizações do pacman, seus hooks e pacotes não são desfeitos. Registros em `packages/` mostram versões anteriores e posteriores. Falhas do pacman impedem aplicar configurações.
 
 Spotify usa Flatpak por usuário com remote validado. VS Code original fica em `.local/share/juno-apps/vscode`, com versões anteriores e launchers substituídos preservados. Sua instalação exige checksum HTTPS da Microsoft, identidade do produto e inspeção de caminhos e links do arquivo antes da extração.
+
+O launcher do VS Code usa `Icon=visual-studio-code`. Seu PNG original é instalado individualmente em `.local/share/icons/hicolor/256x256/apps`, com backup do arquivo substituído, antes de publicar o launcher. Esse recurso acompanha a instalação do aplicativo e permanece fora do rollback de configurações; os outros ícones hicolor são preservados.
 
 Oh My Posh fica em `.local/share/juno-apps/oh-my-posh`, com releases oficiais verificadas por SHA-256 e versão. A ativação ocorre somente após validar o binário; falhas de download ou verificação preservam a versão atual. Binários, aplicativos e seus apontadores de versão ficam fora do rollback; `.bashrc`, tema e preferências do editor ficam dentro dele.
 
@@ -58,4 +63,6 @@ A habilitação do GDM tem registro separado e não desativa outro gerenciador. 
 
 Painel, launcher, notificações, captura, bloqueio, áudio, brilho e energia pertencem ao GNOME. Scripts históricos Hyprland não são iniciados. A seleção de wallpaper usa GSettings e não é reaplicada no login; reinstalar reaplica o perfil inicial com backup.
 
-Bash recebe integração interativa local, com caminhos protegidos e inicialização sem duplicação. O shell de login da conta não é alterado. Tema, teclado, animações, suspensão e atalhos globais permanecem nas Configurações nativas.
+Bash recebe integração interativa local, com caminhos protegidos e inicialização sem duplicação. O shell de login da conta não é alterado. Tema de janelas, teclado, animações, suspensão e atalhos globais permanecem nas Configurações nativas.
+
+O tema de ícones segue a [especificação freedesktop](https://specifications.freedesktop.org/icon-theme/latest/), com SVGs escaláveis no contexto de aplicativos e herança Adwaita/hicolor. A validação confere o índice, todos os checksums, aliases e SVGs antes da substituição; referências externas e conteúdo ativo são recusados. A reinstalação não exige extensões GNOME nem altera arquivos `.desktop` dos pacotes do sistema.

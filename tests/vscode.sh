@@ -109,7 +109,7 @@ files = {
     "bin/code": b'#!/usr/bin/env bash\nprintf "%s\\0" "$@" >"$TEST_CODE_ARGS"\n',
     "resources/app/product.json": json.dumps(product).encode(),
     "resources/app/package.json": json.dumps({"version": version if kind != "version" else "0.0.0"}).encode(),
-    "resources/app/resources/linux/code.png": b"image fixture",
+    "resources/app/resources/linux/code.png": ("image fixture " + version).encode(),
 }
 with tarfile.open(filename, "w:gz") as archive:
     for name, body in files.items():
@@ -140,6 +140,7 @@ metadata() {
         '{productVersion:$version,version:$commit,sha256hash:$sha,url:"https://vscode.download.prss.microsoft.com/dbazure/download/stable/vendor.tar.gz"}' >"$TEST_METADATA"
 }
 app_path() { printf '%s/.local/share/juno-apps/vscode' "$JUNO_HOME"; }
+icon_path() { printf '%s/.local/share/icons/hicolor/256x256/apps/visual-studio-code.png' "$JUNO_HOME"; }
 current_commit() {
     if ((TEST_NATIVE_LINKS)); then
         local target
@@ -161,6 +162,8 @@ test_install() {
     [[ $(current_commit) == "$TEST_COMMIT" ]] || fail 'versão não ativada'
     [[ -f "$(app_path)/releases/$TEST_COMMIT/.juno-vscode.json" ]] || fail 'manifesto ausente'
     [[ -x "$JUNO_HOME/.local/bin/code" && -f "$JUNO_HOME/.local/share/applications/juno-vscode.desktop" ]] || fail 'launchers ausentes'
+    grep -qx 'Icon=visual-studio-code' "$JUNO_HOME/.local/share/applications/juno-vscode.desktop" || fail 'launcher não permite resolução pelo tema de ícones'
+    cmp -s -- "$(icon_path)" "$(app_path)/releases/$TEST_COMMIT/resources/app/resources/linux/code.png" || fail 'fallback hicolor não preservou o ícone original da Microsoft'
     jq -e --arg version "$TEST_VERSION" '.productVersion == $version' "$JUNO_STATE/apps/vscode.json" >/dev/null
     [[ $(wc -l <"$TEST_CURL_LOG") == 2 ]] || fail 'número incorreto de downloads'
     expect_no_stages
@@ -182,6 +185,10 @@ test_update_retains_previous() {
     make_archive original
     juno_install_vscode
     [[ $(current_commit) == "$TEST_COMMIT" && -d "$(app_path)/releases/$previous" ]] || fail 'atualização perdeu a versão anterior'
+    cmp -s -- "$(icon_path)" "$(app_path)/releases/$TEST_COMMIT/resources/app/resources/linux/code.png" || fail 'fallback hicolor não acompanhou a release'
+    local backup
+    backup=$(find "$JUNO_STATE/apps/backups" -mindepth 1 -maxdepth 1 -type d -print -quit)
+    cmp -s -- "$backup/visual-studio-code.png" "$(app_path)/releases/$previous/resources/app/resources/linux/code.png" || fail 'ícone da release anterior não foi preservado'
     expect_no_stages
 }
 test_corrupt_preserves_current() {
@@ -193,6 +200,7 @@ test_corrupt_preserves_current() {
     printf 'corrompido\n' >>"$TEST_ARCHIVE"
     if juno_install_vscode; then fail 'checksum inválido foi aceito'; fi
     [[ $(current_commit) == "$previous" ]] || fail 'falha alterou a versão atual'
+    cmp -s -- "$(icon_path)" "$(app_path)/releases/$previous/resources/app/resources/linux/code.png" || fail 'falha no download alterou o ícone existente'
     expect_absent "$(app_path)/releases/$TEST_COMMIT"
     expect_no_stages
 }
@@ -259,6 +267,83 @@ test_existing_launchers_preserved() {
     [[ $(cat "$backup/code") == 'meu code anterior' ]] || fail 'wrapper anterior perdido'
     [[ $(cat "$backup/juno-vscode.desktop") == 'meu launcher anterior' ]] || fail 'desktop anterior perdido'
 }
+
+test_existing_icon_preserved() {
+    fixture
+    _txn_mkdir_home '.local/share/icons/hicolor/256x256/apps'
+    printf 'meu ícone anterior\n' >"$(icon_path)"
+    printf 'ícone de outro aplicativo\n' >"${JUNO_HOME}/.local/share/icons/hicolor/256x256/apps/other.png"
+    juno_install_vscode
+    local backup
+    backup=$(find "$JUNO_STATE/apps/backups" -mindepth 1 -maxdepth 1 -type d -print -quit)
+    [[ $(cat "$backup/visual-studio-code.png") == 'meu ícone anterior' ]] || fail 'ícone preexistente perdido'
+    [[ $(cat "$JUNO_HOME/.local/share/icons/hicolor/256x256/apps/other.png") == 'ícone de outro aplicativo' ]] || fail 'arquivo vizinho do hicolor foi alterado'
+    cmp -s -- "$(icon_path)" "$(app_path)/releases/$TEST_COMMIT/resources/app/resources/linux/code.png" || fail 'fallback original não foi instalado'
+}
+
+test_icon_conflict_preserves_current() {
+    fixture
+    juno_install_vscode
+    local previous=$TEST_COMMIT
+    cp -- "$JUNO_HOME/.local/bin/code" "$CASE_ROOT/previous-wrapper"
+    cp -- "$JUNO_HOME/.local/share/applications/juno-vscode.desktop" "$CASE_ROOT/previous-desktop"
+    rm -- "$(icon_path)"
+    mkdir -- "$(icon_path)"
+    printf 'preservar\n' >"$(icon_path)/sentinel"
+    TEST_COMMIT=2222222222222222222222222222222222222222
+    TEST_VERSION=1.2.4
+    make_archive original
+    if juno_install_vscode; then fail 'diretório aceito como destino do ícone'; fi
+    [[ $(current_commit) == "$previous" ]] || fail 'conflito do ícone alterou a versão atual'
+    [[ $(cat "$(icon_path)/sentinel") == preservar ]] || fail 'conflito do ícone perdeu arquivos preexistentes'
+    cmp -s -- "$CASE_ROOT/previous-wrapper" "$JUNO_HOME/.local/bin/code" || fail 'conflito do ícone alterou o wrapper'
+    cmp -s -- "$CASE_ROOT/previous-desktop" "$JUNO_HOME/.local/share/applications/juno-vscode.desktop" || fail 'conflito do ícone alterou o desktop'
+    expect_no_stages
+}
+
+test_icon_links_rejected() {
+    local kind
+    for kind in symlink hardlink; do
+        fixture
+        _txn_mkdir_home '.local/share/icons/hicolor/256x256/apps'
+        printf 'alvo preservado\n' >"$CASE_ROOT/icon-source"
+        if [[ $kind == symlink ]]; then
+            if ((!TEST_NATIVE_LINKS)); then
+                printf 'IGNORADO: link simbólico do ícone precisa de symlinks nativos.\n'
+                continue
+            fi
+            ln -s -- "$CASE_ROOT/icon-source" "$(icon_path)"
+        else
+            if ! ln -- "$CASE_ROOT/icon-source" "$(icon_path)" 2>/dev/null || [[ $(stat -c %h -- "$(icon_path)") == 1 ]]; then
+                printf 'IGNORADO: hardlink do ícone indisponível; validar no Arch.\n'
+                continue
+            fi
+        fi
+        if juno_install_vscode; then fail "destino de ícone $kind aceito"; fi
+        [[ $(cat "$CASE_ROOT/icon-source") == 'alvo preservado' ]] || fail 'link do ícone alterou o alvo'
+        expect_absent "$JUNO_HOME/.local/bin/code"
+        expect_absent "$JUNO_HOME/.local/share/applications/juno-vscode.desktop"
+        if ((TEST_NATIVE_LINKS)); then expect_absent "$(app_path)/current"; else expect_absent "$(app_path)/.mock-current"; fi
+        expect_no_stages
+    done
+}
+
+test_icon_external_ancestor() {
+    fixture
+    if ((!TEST_NATIVE_LINKS)); then
+        printf 'IGNORADO: ancestral externo do ícone precisa de symlinks nativos.\n'
+        return
+    fi
+    _txn_mkdir_home '.local/share/icons'
+    mkdir -- "$CASE_ROOT/outside-icons"
+    printf 'preservar\n' >"$CASE_ROOT/outside-icons/sentinel"
+    ln -s -- "$CASE_ROOT/outside-icons" "$JUNO_HOME/.local/share/icons/hicolor"
+    if juno_install_vscode; then fail 'ícone aceitou ancestral fora do diretório pessoal'; fi
+    [[ $(cat "$CASE_ROOT/outside-icons/sentinel") == preservar ]] || fail 'ancestral externo foi alterado'
+    [[ $(find "$CASE_ROOT/outside-icons" -mindepth 1 | wc -l) == 1 ]] || fail 'arquivos criados fora do diretório pessoal'
+    expect_absent "$JUNO_HOME/.local/bin/code"
+    expect_no_stages
+}
 test_wrapper_quotes() {
     fixture
     juno_install_vscode
@@ -306,7 +391,9 @@ test_external_ancestor() {
 count=0
 for test in test_install test_idempotence test_update_retains_previous test_corrupt_preserves_current \
     test_failed_binary test_offline test_untrusted_metadata test_reject_oss test_reject_version \
-    test_unsafe_archives test_existing_launchers_preserved test_wrapper_quotes test_existing_manifest_corrupt \
+    test_unsafe_archives test_existing_launchers_preserved test_existing_icon_preserved \
+    test_icon_conflict_preserves_current test_icon_links_rejected test_icon_external_ancestor \
+    test_wrapper_quotes test_existing_manifest_corrupt \
     test_lock_required test_external_ancestor; do
     ("$test")
     count=$((count + 1))

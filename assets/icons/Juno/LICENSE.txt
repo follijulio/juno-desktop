@@ -1,0 +1,14 @@
+Juno application icon artwork
+SPDX-License-Identifier: CC0-1.0
+
+To the extent possible under law, the Juno Desktop contributors have waived
+all copyright and related or neighboring rights to this original icon artwork.
+This work is published from Brazil.
+
+This artwork is provided under the Creative Commons CC0 1.0 Universal
+Public Domain Dedication, without warranty.
+https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
+Application names identify the applications represented. Their names and
+trademarks remain the property of their respective owners; no endorsement
+is claimed. The SVG drawings are original artwork, not copied brand assets.

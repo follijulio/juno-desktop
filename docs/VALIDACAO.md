@@ -17,6 +17,7 @@ Use um Arch de teste antes de aplicar ao ambiente principal:
 - Confirmar que o gerenciador de login existente permanece configurado; sem outro gerenciador e sem máscara do GDM, conferir GDM habilitado. Nenhum serviço de login deve ser iniciado ou reiniciado pelo instalador. O alvo de boot existente deve ser preservado.
 - Entrar em GNOME Wayland. Conferir visão geral, notificações, painel, monitores, escala e atalhos nativos. Conferir preservação das preferências anteriores de teclado, tema, animações, bloqueio e suspensão.
 - Conferir Roboto na interface e documentos, Space Mono nos aplicativos monoespaçados GNOME, JetBrains Mono no editor e Nerd Font Mono nos terminais, sem glifos ausentes. Testar Kitty com Bash/Oh My Posh e o terminal integrado do VS Code.
+- Conferir os ícones Juno na grade de aplicativos e no dock em 32/64 px e na escala do monitor. Validar Firefox, Nautilus, Kitty, VS Code, Steam, Discord e Spotify quando instalado; aplicativos sem desenho próprio e ícones simbólicos de ações devem continuar resolvendo pelo fallback nativo.
 - Conferir preservação de `.bashrc`, comentários JSONC, preferências e perfis de editor não gerenciados. Abrir Bash interativo e não interativo; remover temporariamente o executável Posh e confirmar shell funcional. Conferir que o shell de login da conta permanece o mesmo.
 - Testar áudio, mute, microfone, brilho, bateria e rede nas interfaces GNOME. Equipamentos sem controle de brilho/bateria não devem depender de scripts Juno.
 - Testar capturas nativas e cancelamento. Conferir arquivo salvo e clipboard conforme a operação escolhida.
@@ -26,6 +27,7 @@ Use um Arch de teste antes de aplicar ao ambiente principal:
 - Abrir Firefox, Nautilus, Steam, Discord e VS Code nos aplicativos; testar Spotify quando instalado. Conferir `code --version`, linguagens e Marketplace original.
 - Conferir multilib e seu backup, provider Vulkan de 32 bits e atualização Flatpak sem substituir remotes existentes por outra origem.
 - Editar arquivo/preferência gerenciada e restaurar backup v2; conferir arquivos, valores GNOME e backup das edições substituídas. Preferências sem valor explícito devem voltar ao padrão. Restaurar backup legado v1 sem exigir snapshots GNOME inexistentes.
+- Restaurar um backup novo e conferir o tema de ícones anterior. Restaurar um backup v2 antigo com snapshot GNOME de seis chaves e conferir que o tema de ícones atual permanece. Verificar também recuperação interrompida nos dois escopos e o ícone original do VS Code com outro tema.
 - Interromper instalação de teste e confirmar recuperação do diário; testar alteração concorrente e conferir interrupção sem perda de arquivos ou preferências divergentes.
 - Conferir preservação das configurações e pacotes Hyprland existentes. Testar essa sessão separadamente caso continue em uso; Kitty, fontes e wallpapers são compartilhados.
 

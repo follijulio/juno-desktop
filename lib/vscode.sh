@@ -73,7 +73,7 @@ _vscode_product() {
        -f "$release/bin/code" && -x "$release/bin/code" && ! -L "$release/bin/code" &&
        -f "$release/resources/app/product.json" && ! -L "$release/resources/app/product.json" &&
        -f "$release/resources/app/package.json" && ! -L "$release/resources/app/package.json" &&
-       -f "$release/resources/app/resources/linux/code.png" ]] || {
+       -f "$release/resources/app/resources/linux/code.png" && ! -L "$release/resources/app/resources/linux/code.png" ]] || {
         _vscode_error 'O pacote não contém os executáveis e recursos esperados.'; return 1;
     }
     jq -e '.nameLong == "Visual Studio Code" and .applicationName == "code"' \
@@ -114,11 +114,29 @@ _vscode_desktop_exec() {
 }
 
 _vscode_launchers() {
-    local stage=$1 app=$2 wrapper desktop backup='' destination name
+    local stage=$1 app=$2 release=$3 wrapper desktop icon backup='' destination name
     wrapper="$JUNO_HOME/.local/bin/code"
     desktop="$JUNO_HOME/.local/share/applications/juno-vscode.desktop"
+    icon="$JUNO_HOME/.local/share/icons/hicolor/256x256/apps/visual-studio-code.png"
     _txn_mkdir_home '.local/bin' || return 1
     _txn_mkdir_home '.local/share/applications' || return 1
+    _txn_mkdir_home '.local/share/icons/hicolor/256x256/apps' || return 1
+    # An inherited theme must still resolve the original Microsoft icon after
+    # restoring another theme. Never write through an existing icon link.
+    if [[ -e $icon || -L $icon ]]; then
+        [[ -f $icon && ! -L $icon && $(stat -c %h -- "$icon") == 1 &&
+           $(stat -c %u -- "$icon") == "$(id -u)" ]] || {
+            _vscode_error "Ícone existente precisa ser arquivo regular, próprio e sem links: $icon"; return 1;
+        }
+    fi
+    for destination in "$wrapper" "$desktop"; do
+        if [[ -e $destination || -L $destination ]]; then
+            [[ -f $destination || -L $destination ]] || {
+                _vscode_error "Launcher existente não é arquivo/link: $destination"; return 1;
+            }
+        fi
+    done
+    cp -- "$release/resources/app/resources/linux/code.png" "$stage/visual-studio-code.png" || return 1
     printf '#!/usr/bin/env bash\n# Gerenciado por Juno Desktop: VS Code Microsoft.\nexec %s "$@"\n' \
         "$(_vscode_shell_quote "$app/current/bin/code")" >"$stage/code" || return 1
     {
@@ -126,19 +144,20 @@ _vscode_launchers() {
         printf 'Comment=Editor de código da Microsoft\n'
         printf 'Exec=%s %%F\n' "$(_vscode_desktop_exec "$wrapper")"
         printf 'TryExec=%s\n' "$(_vscode_desktop_string "$wrapper")"
-        printf 'Icon=%s\n' "$(_vscode_desktop_string "$app/current/resources/app/resources/linux/code.png")"
+        printf 'Icon=visual-studio-code\n'
         printf 'Terminal=false\nCategories=Development;IDE;TextEditor;\nStartupWMClass=Code\n'
         printf 'X-Juno-Managed=true\n'
     } >"$stage/juno-vscode.desktop" || return 1
     chmod 755 -- "$stage/code" || return 1
-    chmod 644 -- "$stage/juno-vscode.desktop" || return 1
-    for name in code juno-vscode.desktop; do
-        destination=$wrapper
-        [[ $name == code ]] || destination=$desktop
+    chmod 644 -- "$stage/juno-vscode.desktop" "$stage/visual-studio-code.png" || return 1
+    # Publish the fallback before switching the launcher to a themed icon name.
+    for name in visual-studio-code.png code juno-vscode.desktop; do
+        case $name in
+            code) destination=$wrapper;;
+            juno-vscode.desktop) destination=$desktop;;
+            visual-studio-code.png) destination=$icon;;
+        esac
         if [[ -e $destination || -L $destination ]]; then
-            [[ -f $destination || -L $destination ]] || {
-                _vscode_error "Launcher existente não é arquivo/link: $destination"; return 1;
-            }
             if [[ ! -L $destination ]] && cmp -s -- "$stage/$name" "$destination" &&
                 [[ $(stat -c %a -- "$destination") == "$(stat -c %a -- "$stage/$name")" ]]; then
                 continue
@@ -151,7 +170,7 @@ _vscode_launchers() {
             fi
             cp -a -- "$destination" "$backup/$name" || return 1
         fi
-        # Stage beside each destination so replacing a launcher stays atomic
+        # Stage beside each destination so replacing each resource stays atomic
         # even when .local/bin and the app are on distinct filesystems.
         local temporary
         temporary=$(mktemp "${destination%/*}/.juno-vscode.XXXXXXXX") || return 1
@@ -161,7 +180,7 @@ _vscode_launchers() {
             return 1
         fi
     done
-    [[ -z $backup ]] || juno_log "Launchers anteriores do VS Code preservados em: $backup"
+    [[ -z $backup ]] || juno_log "Launchers e ícone anteriores do VS Code preservados em: $backup"
 }
 
 _vscode_activate() {
@@ -229,7 +248,7 @@ juno_install_vscode() (
         cp -- "$metadata" "$stage/unpack/VSCode-linux-x64/.juno-vscode.json" || return 1
         mv -T -- "$stage/unpack/VSCode-linux-x64" "$release" || return 1
     fi
-    _vscode_launchers "$stage" "$app" || return 1
+    _vscode_launchers "$stage" "$app" "$release" || return 1
     _vscode_activate "$app" "$stage" "$commit" || return 1
     cp -- "$metadata" "$stage/installed.json" || return 1
     chmod 600 -- "$stage/installed.json" || return 1

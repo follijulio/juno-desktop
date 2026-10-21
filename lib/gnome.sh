@@ -42,7 +42,13 @@ _juno_gsettings_run() (
 )
 
 juno_gsettings_desired() { _juno_gsettings_run desired --output "$1"; }
-juno_gsettings_snapshot() { _juno_gsettings_run snapshot --output "$1"; }
+juno_gsettings_snapshot() {
+    if [[ $# == 1 ]]; then
+        _juno_gsettings_run snapshot --output "$1"
+    else
+        _juno_gsettings_run snapshot --output "$1" --input "$2"
+    fi
+}
 # The transaction module also passes a snapshot to this optional argument.
 # shellcheck disable=SC2120
 juno_gsettings_validate() {
@@ -63,7 +69,7 @@ juno_gsettings_recovery_check() { _juno_gsettings_run recovery-check --before "$
 
 juno_gnome_plan() {
     juno_log 'GNOME: Shell, Configurações, Nautilus, chaveiro e portal nativo; nenhuma remoção de pacotes existentes.'
-    juno_log 'Perfil: Roboto na interface, Space Mono em apps monoespaçados e wallpaper Ghibli; JetBrains Mono regular/Nerd para Kitty e VS Code.'
+    juno_log 'Perfil: ícones Juno, Roboto na interface, Space Mono em apps monoespaçados e wallpaper Ghibli; JetBrains Mono regular/Nerd para Kitty e VS Code.'
     juno_log 'GDM: habilitar para o próximo boot somente se nenhum outro gerenciador de login estiver configurado; sem iniciar ou reiniciar serviços.'
     juno_log 'GSettings: validação de schemas e permissões após instalar python-gobject; backup por chave, incluindo valores ausentes.'
 }

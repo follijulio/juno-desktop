@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>Extensions — Juno</title>
+  <desc>Original application icon: a cream illustration on a colored rounded tile.</desc>
+  <rect x="4" y="6" width="56" height="56" rx="12" fill="#24343a" opacity=".2"/>
+  <rect x="4" y="3" width="56" height="56" rx="12" fill="#e78b45"/>
+  <g transform="rotate(-4 32 32)" stroke="#24343a" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M13 15h12c-3-11 15-11 12 0h12v12c11-3 11 15 0 12v12H37c3-11-15-11-12 0H13V39c11 3 11-15 0-12z" fill="#24343a" stroke="none" transform="translate(2 2)"/><path d="M11 13h12c-3-11 15-11 12 0h12v12c11-3 11 15 0 12v12H35c3-11-15-11-12 0H11V37c11 3 11-15 0-12z" fill="#fff4d7"/>
+  </g>
+</svg>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>Rede — Juno</title>
+  <desc>Original application icon: a cream illustration on a colored rounded tile.</desc>
+  <rect x="4" y="6" width="56" height="56" rx="12" fill="#24343a" opacity=".2"/>
+  <rect x="4" y="3" width="56" height="56" rx="12" fill="#4269ce"/>
+  <g transform="rotate(-3 32 32)" stroke="#24343a" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M31 24v9H16v7m15-7h15v7" fill="none" stroke="#24343a" stroke-width="3"/><rect x="24" y="11" width="18" height="15" rx="2" fill="#24343a" stroke="none"/><rect x="21" y="8" width="18" height="15" rx="2" fill="#fff4d7"/><rect x="10" y="42" width="18" height="15" rx="2" fill="#24343a" stroke="none"/><rect x="7" y="39" width="18" height="15" rx="2" fill="#fff4d7"/><rect x="40" y="42" width="18" height="15" rx="2" fill="#24343a" stroke="none"/><rect x="37" y="39" width="18" height="15" rx="2" fill="#fff4d7"/><path d="M25 17h10M11 48h10m20 0h10" fill="none" stroke="#4269ce" stroke-width="2"/>
+  </g>
+</svg>
