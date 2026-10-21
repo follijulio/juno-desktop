@@ -1,0 +1,12 @@
+[Icon Theme]
+Name=Juno
+Comment=Original cream illustrations on colorful rounded tiles
+Inherits=Adwaita,hicolor
+Directories=scalable/apps
+
+[scalable/apps]
+Size=64
+Type=Scalable
+MinSize=16
+MaxSize=512
+Context=Applications

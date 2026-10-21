@@ -33,14 +33,21 @@ juno_install_spotify() {
 }
 
 juno_install_applications() {
-    juno_install_spotify
+    # A subshell contains juno_die: optional app failures must not abort setup.
+    # shellcheck disable=SC2034
+    JUNO_SPOTIFY_SKIPPED=0
+    if ! (juno_install_spotify); then
+        # shellcheck disable=SC2034
+        JUNO_SPOTIFY_SKIPPED=1
+        juno_warn 'Spotify não foi instalado ou atualizado. Continuando com VS Code e a configuração do desktop; você pode tentar instalar o Spotify depois.'
+    fi
     juno_install_vscode
 }
 
 juno_applications_plan() {
     juno_log 'Aplicativos: Firefox, Nautilus, mpv, pavucontrol, Steam e Discord pelo pacman.'
     juno_log 'Steam: habilitar multilib se necessário, com backup de /etc/pacman.conf. O pacman solicitará o driver Vulkan de 32 bits compatível com sua GPU.'
-    juno_log 'Spotify: Flatpak do usuário, com binário upstream e empacotamento comunitário do Flathub.'
+    juno_log 'Spotify (opcional): Flatpak do usuário, com binário upstream e empacotamento comunitário do Flathub. Recusa ou falha não interrompe a configuração do desktop.'
     juno_log 'Visual Studio Code: binário estável original da Microsoft, checksum verificado, instalado para este usuário.'
     juno_log 'Desenvolvimento: Python/pip/uv, Node.js/npm, C/C++ (GCC/Clang), Go, Rust/Cargo, Git/GitHub CLI, CMake/Ninja, GDB/LLDB, SQLite, ripgrep/fd, ShellCheck/shfmt.'
 }

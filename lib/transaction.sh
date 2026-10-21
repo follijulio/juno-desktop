@@ -20,7 +20,7 @@ _txn_kind() {
 }
 _txn_allowed() {
     case "$1" in
-        .config/hypr|.config/waybar|.config/rofi|.config/mako|.config/kitty|.config/juno|.config/xdg-desktop-portal|.local/share/fonts/juno|.local/share/juno-desktop|.config/juno-gnome|.bashrc|.config/Code/User/settings.json|.config/environment.d/90-juno.conf) return 0;;
+        .config/hypr|.config/waybar|.config/rofi|.config/mako|.config/kitty|.config/juno|.config/xdg-desktop-portal|.local/share/fonts/juno|.local/share/juno-desktop|.config/juno-gnome|.bashrc|.config/Code/User/settings.json|.config/environment.d/90-juno.conf|.local/share/icons/Juno) return 0;;
         *) return 1;;
     esac
 }
@@ -569,7 +569,9 @@ txn_restore() {
         JUNO_GSETTINGS_ENABLED=1
         JUNO_SETTINGS_STAGE=$(mktemp -d "$JUNO_STATE/.settings.XXXXXXXX") || return 1
         chmod 700 -- "$JUNO_SETTINGS_STAGE" || return 1
-        juno_gsettings_snapshot "$JUNO_SETTINGS_STAGE/before.json" || return 1
+        # A legacy backup owns only its original keys. Snapshot the same scope
+        # so rollback/recovery never changes a newer preference such as icons.
+        juno_gsettings_snapshot "$JUNO_SETTINGS_STAGE/before.json" "$JUNO_RESTORE_SETTINGS" || return 1
         cp -- "$JUNO_RESTORE_SETTINGS" "$JUNO_SETTINGS_STAGE/desired.json" || return 1
     fi
     txn_backup || return 1

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>CMake — Juno</title>
+  <desc>Original application icon: a cream illustration on a colored rounded tile.</desc>
+  <rect x="4" y="6" width="56" height="56" rx="12" fill="#24343a" opacity=".2"/>
+  <rect x="4" y="3" width="56" height="56" rx="12" fill="#279963"/>
+  <g transform="rotate(-3 32 32)" stroke="#24343a" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M33 11l22 39H11z" fill="#24343a" stroke="none" transform="translate(0 2)"/><path d="M31 8l22 39H9z" fill="#fff4d7"/><path d="M31 8v26L9 47z" fill="#e97b6b"/><path d="M31 34l22 13H9z" fill="#79aec8"/><path d="M31 8l22 39-22-13z" fill="#a5c581"/>
+  </g>
+</svg>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>Topologia do hardware — Juno</title>
+  <desc>Original application icon: a cream illustration on a colored rounded tile.</desc>
+  <rect x="4" y="6" width="56" height="56" rx="12" fill="#24343a" opacity=".2"/>
+  <rect x="4" y="3" width="56" height="56" rx="12" fill="#279963"/>
+  <g transform="rotate(-3 32 32)" stroke="#24343a" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M22 10v6m10-6v6m10-6v6M22 48v6m10-6v6m10-6v6M10 22h6m-6 10h6m-6 10h6m32-20h6m-6 10h6m-6 10h6" fill="none" stroke-width="2.6"/><rect x="18" y="18" width="34" height="34" rx="2" fill="#24343a" stroke="none"/><rect x="15" y="15" width="34" height="34" rx="2" fill="#fff4d7"/><path d="M32 25v8H24v5m8-5h8v5" fill="none"/><rect x="28" y="21" width="8" height="7" rx="1" fill="#a5c581"/><rect x="20" y="36" width="8" height="7" rx="1" fill="#a5c581"/><rect x="36" y="36" width="8" height="7" rx="1" fill="#a5c581"/>
+  </g>
+</svg>

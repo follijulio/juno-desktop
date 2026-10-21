@@ -123,6 +123,9 @@ juno_main() {
     fi
     juno_configure_gdm
     juno_log 'Ambiente Juno configurado com sucesso. Reinicie e selecione GNOME no gerenciador de login.'
+    if [[ ${JUNO_SPOTIFY_SKIPPED:-0} == 1 ]]; then
+        juno_warn 'Spotify não foi instalado ou atualizado nesta execução. Consulte o registro antes de tentar novamente.'
+    fi
 }
 
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then

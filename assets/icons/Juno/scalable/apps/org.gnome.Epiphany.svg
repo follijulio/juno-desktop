@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>Navegador Web — Juno</title>
+  <desc>Original application icon: a cream illustration on a colored rounded tile.</desc>
+  <rect x="4" y="6" width="56" height="56" rx="12" fill="#24343a" opacity=".2"/>
+  <rect x="4" y="3" width="56" height="56" rx="12" fill="#4269ce"/>
+  <g transform="rotate(-3 32 32)" stroke="#24343a" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+    <circle cx="34" cy="34" r="21" fill="#24343a" stroke="none"/><circle cx="31" cy="31" r="21" fill="#fff4d7"/><path d="M12 24h38M11 36h40M18 45h27M31 10c-13 10-13 32 0 42m0-42c13 10 13 32 0 42M31 10v42" fill="none"/><path d="M39 15l11 4-11 4 2-4z" fill="#db6261"/>
+  </g>
+</svg>

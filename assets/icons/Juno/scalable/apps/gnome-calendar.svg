@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>Calendário — Juno</title>
+  <desc>Original application icon: a cream illustration on a colored rounded tile.</desc>
+  <rect x="4" y="6" width="56" height="56" rx="12" fill="#24343a" opacity=".2"/>
+  <rect x="4" y="3" width="56" height="56" rx="12" fill="#db6261"/>
+  <g transform="rotate(-4 32 32)" stroke="#24343a" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+    <rect x="15" y="16" width="37" height="37" rx="2" fill="#24343a" stroke="none"/><rect x="12" y="13" width="37" height="37" rx="2" fill="#fff4d7"/><path d="M12 24h37V13H12z" fill="#db6261"/><path d="M21 9v8m19-8v8" fill="none"/><path d="M20 31h3m8 0h3m8 0h1M20 38h3m8 0h3m8 0h1m-23 7h3m8 0h3" fill="none" stroke-width="2.7"/>
+  </g>
+</svg>

@@ -75,12 +75,15 @@ class GnomeSettingsTests(unittest.TestCase):
     def setUp(self):
         self.home = Path("C:/Users/Test Home ç") if os.name == "nt" else Path("/tmp/Test Home ç")
         self.desired = gnome.desired_document(self.home)
+        self.legacy = {"version": 1, "entries": copy.deepcopy(self.desired["entries"][:-1])}
 
     def test_profile_limits_and_wallpaper_uri_encoding(self):
-        self.assertEqual(len(self.desired["entries"]), 6)
+        self.assertEqual(self.desired["version"], 2)
+        self.assertEqual(len(self.desired["entries"]), 7)
         values = {entry["key"]: entry["value"] for entry in self.desired["entries"]}
         self.assertEqual(values["font-name"], "'Roboto 11'")
         self.assertEqual(values["monospace-font-name"], "'Space Mono 11'")
+        self.assertEqual(values["icon-theme"], "'Juno'")
         self.assertIn("Test%20Home%20%C3%A7", values["picture-uri"])
         self.assertEqual(values["picture-uri"], values["picture-uri-dark"])
 
@@ -90,6 +93,7 @@ class GnomeSettingsTests(unittest.TestCase):
                          lambda doc: doc["entries"][0].update(key="enable-animations"),
                          lambda doc: doc["entries"][0].update(type="b"),
                          lambda doc: doc["entries"][0].update(path="/org/gnome/desktop/"),
+                         lambda doc: doc.update(version=3),
                          lambda doc: doc.update(version=True)):
             document = copy.deepcopy(self.desired)
             mutation(document)
@@ -111,23 +115,25 @@ class GnomeSettingsTests(unittest.TestCase):
         for backend, document in ((Backend(locked="picture-options"), self.desired),
                                   (Backend(), copy.deepcopy(self.desired))):
             if backend.locked is None:
-                document["entries"][-1]["value"] = "'invalid-option'"
+                next(entry for entry in document["entries"] if entry["key"] == "picture-options")["value"] = "'invalid-option'"
             with self.assertRaises(gnome.SettingsError):
                 gnome.apply_document(document, backend)
             self.assertEqual(backend.writes, [])
 
     def test_interrupted_write_is_synced_and_recoverable(self):
-        backend = Backend()
-        before = gnome.snapshot(self.desired, backend)
-        backend.fail_at = 2
-        with self.assertRaises(gnome.SettingsError):
-            gnome.apply_document(self.desired, backend)
-        self.assertTrue(backend.synced)
-        self.assertEqual(len(backend.writes), 2)
-        gnome.recovery_check(before, self.desired, backend)
-        backend.fail_at = None
-        gnome.apply_document(before, backend)
-        gnome.verify(before, backend)
+        for fail_at in (2, 6):
+            with self.subTest(fail_at=fail_at):
+                backend = Backend({(gnome.INTERFACE, "icon-theme"): Variant("Previous Icons")})
+                before = gnome.snapshot(self.desired, backend)
+                backend.fail_at = fail_at
+                with self.assertRaises(gnome.SettingsError):
+                    gnome.apply_document(self.desired, backend)
+                self.assertTrue(backend.synced)
+                self.assertEqual(len(backend.writes), fail_at)
+                gnome.recovery_check(before, self.desired, backend)
+                backend.fail_at = None
+                gnome.apply_document(before, backend)
+                gnome.verify(before, backend)
 
     def test_recovery_rejects_concurrent_edit_before_writing(self):
         backend = Backend()
@@ -135,6 +141,63 @@ class GnomeSettingsTests(unittest.TestCase):
         backend.values[(gnome.INTERFACE, "font-name")] = Variant("User edit 14")
         with self.assertRaises(gnome.Difference):
             gnome.recovery_check(before, self.desired, backend)
+        self.assertEqual(backend.writes, [])
+
+    def test_theme_backup_and_rollback_preserve_explicit_and_absent_values(self):
+        for previous in (None, Variant("Custom Icons")):
+            with self.subTest(previous=previous):
+                backend = Backend({(gnome.INTERFACE, "icon-theme"): previous})
+                before = gnome.snapshot(self.desired, backend)
+                gnome.apply_document(self.desired, backend)
+                self.assertEqual(backend.values[(gnome.INTERFACE, "icon-theme")].value, "Juno")
+                gnome.apply_document(before, backend)
+                gnome.verify(before, backend)
+                self.assertTrue(gnome.equal_value(backend.values[(gnome.INTERFACE, "icon-theme")], previous))
+
+    def test_legacy_restore_and_interruption_leave_icon_theme_untouched(self):
+        backend = Backend({(gnome.INTERFACE, "icon-theme"): Variant("Custom Icons")})
+        before = gnome.snapshot(self.legacy, backend)
+        self.assertEqual(before["version"], 1)
+        self.assertEqual(len(before["entries"]), 6)
+        backend.fail_at = 2
+        with self.assertRaises(gnome.SettingsError):
+            gnome.apply_document(self.legacy, backend)
+        # Icons are outside this transaction's scope, even if edited meanwhile.
+        backend.values[(gnome.INTERFACE, "icon-theme")] = Variant("Edited Icons")
+        gnome.recovery_check(before, self.legacy, backend)
+        backend.fail_at = None
+        gnome.apply_document(before, backend)
+        gnome.verify(before, backend)
+        self.assertEqual(backend.values[(gnome.INTERFACE, "icon-theme")].value, "Edited Icons")
+        self.assertNotIn("icon-theme", {entry["key"] for entry in backend.writes})
+
+    def test_legacy_scope_is_exact_and_new_snapshots_cannot_omit_icons(self):
+        gnome.validate_shape(self.legacy)
+        for document in (dict(self.legacy, version=2), dict(self.desired, version=1)):
+            with self.subTest(document=document), self.assertRaises(gnome.SettingsError):
+                gnome.validate_shape(document)
+        invalid = copy.deepcopy(self.legacy)
+        invalid["entries"][0] = copy.deepcopy(self.desired["entries"][-1])
+        with self.assertRaises(gnome.SettingsError):
+            gnome.validate_shape(invalid)
+
+    def test_recovery_refuses_mixed_snapshot_scopes(self):
+        backend = Backend()
+        before = gnome.snapshot(self.legacy, backend)
+        with self.assertRaisesRegex(gnome.SettingsError, "conjuntos de chaves"):
+            gnome.recovery_check(before, self.desired, backend)
+        self.assertEqual(backend.writes, [])
+
+    def test_cli_snapshot_uses_legacy_template_scope(self):
+        backend = Backend({(gnome.INTERFACE, "icon-theme"): Variant("Keep Icons")})
+        with tempfile.TemporaryDirectory() as directory:
+            template = Path(directory) / "legacy.json"
+            output = Path(directory) / "snapshot.json"
+            gnome.write_document(template, self.legacy)
+            arguments = ["snapshot", "--home", str(self.home), "--input", str(template), "--output", str(output)]
+            with patch.object(gnome, "GioBackend", return_value=backend):
+                self.assertEqual(gnome.main(arguments), 0)
+            self.assertEqual(gnome.read_document(output), gnome.snapshot(self.legacy, backend))
         self.assertEqual(backend.writes, [])
 
     def test_comparison_uses_parsed_values(self):

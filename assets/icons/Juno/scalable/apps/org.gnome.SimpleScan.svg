@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>Digitalizador — Juno</title>
+  <desc>Original application icon: a cream illustration on a colored rounded tile.</desc>
+  <rect x="4" y="6" width="56" height="56" rx="12" fill="#24343a" opacity=".2"/>
+  <rect x="4" y="3" width="56" height="56" rx="12" fill="#279963"/>
+  <g transform="rotate(-6 32 32)" stroke="#24343a" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M16 29l7-15h22l7 15v21H16z" fill="#24343a" stroke="none"/><path d="M13 26l7-15h22l7 15v21H13z" fill="#fff4d7"/><path d="M13 26h36m-30-4h25l-5-8H23z" fill="#c7dfcf"/><path d="M20 34h22m-22 5h14" fill="none"/><circle cx="43" cy="40" r="2" fill="#279963" stroke="none"/>
+  </g>
+</svg>

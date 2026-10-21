@@ -1,6 +1,6 @@
 # Juno Desktop
 
-Ambiente para **Arch Linux x86_64 com GNOME e Wayland**. O GNOME fornece painel, aplicativos, notificações, capturas, bloqueio e energia. O Juno configura fontes, wallpaper, Kitty e ferramentas de desenvolvimento, sem extensões ou atalhos globais adicionais.
+Ambiente para **Arch Linux x86_64 com GNOME e Wayland**. O GNOME fornece painel, aplicativos, notificações, capturas, bloqueio e energia. O Juno configura fontes, ícones de aplicativos, wallpaper, Kitty e ferramentas de desenvolvimento, sem extensões ou atalhos globais adicionais.
 
 A interface e os documentos usam Roboto; aplicativos monoespaçados GNOME usam Space Mono. **JetBrains Mono** é usada no editor do VS Code, e **JetBrainsMono Nerd Font Mono** no Kitty e no terminal integrado. Kitty usa tamanho 12; os tamanhos existentes do editor são preservados. Os terminais usam Bash com Oh My Posh, sem mudar o shell de login da conta.
 
@@ -38,11 +38,24 @@ São necessários `sudo`, `curl`, `tar`, `gzip`, `coreutils`, `findutils`, `util
 
 ## GNOME e migração
 
-O perfil gerencia seis preferências: fontes da interface, documentos e aplicativos monoespaçados, duas URIs de wallpaper e modo de preenchimento. Reinstalar reaplica essas preferências, incluindo o wallpaper inicial, com backup do estado anterior.
+O perfil gerencia sete preferências: fontes da interface, documentos e aplicativos monoespaçados, tema de ícones, duas URIs de wallpaper e modo de preenchimento. Reinstalar reaplica essas preferências, incluindo o wallpaper inicial, com backup do estado anterior.
 
 Aparência clara/escura, teclado, animações, bloqueio, suspensão, atalhos e monitores permanecem nas Configurações do GNOME. Use as interfaces nativas para áudio, rede, brilho, energia e captura de tela. Nenhum atalho global Juno é acrescentado.
 
 A migração preserva arquivos e pacotes Hyprland existentes. A instalação GNOME não aplica configurações de Hyprland, Waybar, Rofi, Mako, Hypridle ou Hyprlock. Os arquivos históricos do repositório permanecem para compatibilidade com o ambiente anterior e seus backups; não são iniciados pelo perfil GNOME. Kitty, fontes e wallpapers continuam compartilhados.
+
+## Ícones dos aplicativos
+
+O tema **Juno** usa cartões coloridos de cantos arredondados, desenhos creme com contornos escuros e pequenas sombras sólidas. São 49 desenhos vetoriais originais para os aplicativos do Juno e os principais aplicativos GNOME, com aliases para diferentes nomes de lançadores. Aplicativos sem desenho próprio usam seus ícones disponíveis pelo fallback Adwaita/hicolor.
+
+O tema fica em `~/.local/share/icons/Juno` e é selecionado pelo GNOME. Seus arquivos e o tema anterior entram no backup. Os ícones de ações e estados continuam usando o fallback nativo. O VS Code usa um nome de ícone temático, mantendo uma cópia do PNG original em hicolor para funcionar também com outros temas.
+
+Os SVGs locais têm licença CC0 e checksums; não há download de tema durante a instalação. Para gerar uma prévia ou conferir os recursos:
+
+```bash
+python3 tools/generate_icons.py --preview .cache/icons-preview.svg
+python3 tools/generate_icons.py --check
+```
 
 ## Terminal e aplicativos
 
@@ -67,7 +80,7 @@ O VS Code fica em `~/.local/share/juno-apps/vscode/`, com versões anteriores pr
 
 Um arquivo gerenciado em `~/.config/environment.d/90-juno.conf` prepara os caminhos dos comandos locais e dos aplicativos Flatpak na próxima sessão GNOME.
 
-Spotify usa Flatpak por usuário via Flathub; seu empacotamento é comunitário. Um remote `flathub` existente com outra origem ou sem verificação de assinaturas é recusado. Para atualizar:
+Spotify é opcional e usa Flatpak por usuário via Flathub; seu empacotamento é comunitário. Cancelar a instalação ou encontrar uma falha gera um aviso e permite continuar com VS Code, Oh My Posh e o perfil GNOME. Um remote `flathub` existente com outra origem ou sem verificação de assinaturas é recusado. Para atualizar:
 
 ```bash
 flatpak update --user
@@ -109,7 +122,7 @@ bash install.sh --rollback ID-DO-BACKUP
 
 Use um ID listado e execute fora da sessão gráfica. A restauração não depende de internet nem de `sudo`; o estado substituído recebe outro backup para preservar suas edições. Backups v2 exigem as dependências locais de GSettings para restaurar preferências GNOME.
 
-Backups, manifestos, diário e logs ficam em `~/.local/state/juno-desktop/`, com acesso privado. Backups **v2** incluem arquivos gerenciados e as seis preferências GNOME. Backups **v1** legados continuam restauráveis com seus destinos originais, sem snapshots GNOME inexistentes.
+Backups, manifestos, diário e logs ficam em `~/.local/state/juno-desktop/`, com acesso privado. Backups **v2** incluem arquivos gerenciados e as preferências GNOME. Backups anteriores com seis preferências mantêm esse escopo e preservam o tema de ícones atual ao serem restaurados; os novos incluem as sete. Backups **v1** legados continuam restauráveis com seus destinos originais, sem snapshots GNOME inexistentes.
 
 Somente as chaves gerenciadas são restauradas, sem substituir a base dconf inteira. Arquivos originalmente ausentes voltam a ficar ausentes; preferências sem valor explícito voltam ao padrão do sistema.
 
