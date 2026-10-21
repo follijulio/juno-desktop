@@ -64,6 +64,7 @@ class BrandValidationTests(unittest.TestCase):
     def test_vendored_resources_have_valid_checksums(self) -> None:
         errors: list[str] = []
         BRAND.check_manifest(ROOT / "assets/fonts/spacemono", errors)
+        BRAND.check_manifest(ROOT / "assets/fonts/jetbrainsmono-nerd", errors)
         BRAND.check_manifest(ROOT / "assets/desktop/wallpapers", errors)
         self.assertEqual(errors, [])
 

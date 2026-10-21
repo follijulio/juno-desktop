@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Original Microsoft build, installed without root privileges or AUR helpers.
+# Original Microsoft build: user archive on Arch, native .deb on Zorin.
 
 _vscode_error() { printf '[Juno · VS Code] %s\n' "$*" >&2; return 1; }
 
@@ -114,10 +114,25 @@ _vscode_desktop_exec() {
 }
 
 _vscode_launchers() {
-    local stage=$1 app=$2 release=$3 wrapper desktop icon backup='' destination name
+    local stage=$1 app=$2 release=$3 wrapper desktop icon backup='' destination name executable mode=${5:-archive}
+    local -a names=(visual-studio-code.png code)
+    executable=${4:-"$app/current/bin/code"}
     wrapper="$JUNO_HOME/.local/bin/code"
     desktop="$JUNO_HOME/.local/share/applications/juno-vscode.desktop"
     icon="$JUNO_HOME/.local/share/icons/hicolor/256x256/apps/visual-studio-code.png"
+    case $mode in
+        archive) names+=(juno-vscode.desktop) ;;
+        debian)
+            if [[ -e $desktop || -L $desktop ]]; then
+                if [[ ! -f $desktop || -L $desktop ]] || ! grep -qx 'X-Juno-Managed=true' "$desktop"; then
+                    _vscode_error 'O launcher Juno existente foi alterado ou não é gerenciado; preserve-o antes de trocar para o pacote Debian.'
+                    return 1
+                fi
+                names+=(juno-vscode.desktop)
+            fi
+            ;;
+        *) _vscode_error 'Modo de publicação de launchers inválido.'; return 1 ;;
+    esac
     _txn_mkdir_home '.local/bin' || return 1
     _txn_mkdir_home '.local/share/applications' || return 1
     _txn_mkdir_home '.local/share/icons/hicolor/256x256/apps' || return 1
@@ -138,7 +153,7 @@ _vscode_launchers() {
     done
     cp -- "$release/resources/app/resources/linux/code.png" "$stage/visual-studio-code.png" || return 1
     printf '#!/usr/bin/env bash\n# Gerenciado por Juno Desktop: VS Code Microsoft.\nexec %s "$@"\n' \
-        "$(_vscode_shell_quote "$app/current/bin/code")" >"$stage/code" || return 1
+        "$(_vscode_shell_quote "$executable")" >"$stage/code" || return 1
     {
         printf '[Desktop Entry]\nVersion=1.0\nType=Application\nName=Visual Studio Code\n'
         printf 'Comment=Editor de código da Microsoft\n'
@@ -148,10 +163,15 @@ _vscode_launchers() {
         printf 'Terminal=false\nCategories=Development;IDE;TextEditor;\nStartupWMClass=Code\n'
         printf 'X-Juno-Managed=true\n'
     } >"$stage/juno-vscode.desktop" || return 1
+    if [[ $mode == debian ]]; then
+        # The official .deb supplies a native desktop entry with actions/MIME types.
+        # Hide only an older managed Juno ID; retain the upstream entry intact.
+        printf 'Hidden=true\n' >> "$stage/juno-vscode.desktop" || return 1
+    fi
     chmod 755 -- "$stage/code" || return 1
     chmod 644 -- "$stage/juno-vscode.desktop" "$stage/visual-studio-code.png" || return 1
     # Publish the fallback before switching the launcher to a themed icon name.
-    for name in visual-studio-code.png code juno-vscode.desktop; do
+    for name in "${names[@]}"; do
         case $name in
             code) destination=$wrapper;;
             juno-vscode.desktop) destination=$desktop;;
@@ -191,7 +211,7 @@ _vscode_activate() {
     fi
 }
 
-juno_install_vscode() (
+_vscode_install_archive() (
     set -euo pipefail
     umask 077
     local app stage='' metadata commit version checksum url release current_target
@@ -255,3 +275,95 @@ juno_install_vscode() (
     mv -fT -- "$stage/installed.json" "$JUNO_STATE/apps/vscode.json" || return 1
     juno_log "Visual Studio Code original $version pronto. Versões anteriores foram mantidas em $app/releases."
 )
+
+_vscode_native_root() { printf '/usr/share/code'; }
+_vscode_legacy_system_launcher() { printf '/usr/local/bin/code'; }
+
+_vscode_debian_package() {
+    local filename=$1 expected_version=$2 package architecture version
+    package=$(dpkg-deb --field "$filename" Package) || return 1
+    architecture=$(dpkg-deb --field "$filename" Architecture) || return 1
+    version=$(dpkg-deb --field "$filename" Version) || return 1
+    [[ $package == code && $architecture == amd64 &&
+       $version == "$expected_version"-* && ${version#"$expected_version"-} =~ ^[0-9]+$ ]] || {
+        _vscode_error 'Pacote Debian recusado: identidade, arquitetura ou versão divergente dos metadados da Microsoft.'
+        return 1
+    }
+}
+
+_vscode_install_debian() (
+    set -euo pipefail
+    umask 077
+    local stage='' metadata version checksum url native_root native_status installed_arch installed_version
+    local installed_state native_version='' reuse=0 legacy_launcher
+    _txn_require_lock || return 1
+    juno_require curl jq dpkg dpkg-deb dpkg-query apt-get debconf-set-selections sha256sum
+    juno_private_subdir apps
+    stage=$(mktemp -d "$JUNO_STATE/apps/.vscode-deb.XXXXXXXX") || return 1
+    trap '[[ -z "$stage" ]] || rm -rf -- "$stage"' EXIT
+    metadata="$stage/metadata.json"
+    native_root=$(_vscode_native_root)
+    juno_log 'Consultando o pacote Debian estável original do Visual Studio Code na Microsoft.'
+    _vscode_fetch 'https://update.code.visualstudio.com/api/update/linux-deb-x64/stable/latest' "$metadata" || return 1
+    _vscode_metadata "$metadata" || return 1
+    version=$(jq -r .productVersion "$metadata")
+    checksum=$(jq -r .sha256hash "$metadata")
+    url=$(jq -r .url "$metadata")
+    native_status=$(dpkg-query -W -f='${db:Status-Status}\t${Architecture}\t${Version}' code 2>/dev/null) || native_status=''
+    IFS=$'\t' read -r installed_state installed_arch installed_version <<< "$native_status"
+    if [[ $installed_state == installed ]]; then
+        [[ $installed_arch == amd64 && -d $native_root && ! -L $native_root ]] || {
+            _vscode_error 'A instalação Debian existente do VS Code é incompatível; arquivos do usuário preservados.'; return 1;
+        }
+        native_version=$(jq -er '.version | strings | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' \
+            "$native_root/resources/app/package.json") || return 1
+        _vscode_product "$native_root" "$native_version" || return 1
+        [[ $installed_version == "$native_version"-* && ${installed_version#"$native_version"-} =~ ^[0-9]+$ ]] || {
+            _vscode_error 'A versão Debian existente diverge dos recursos instalados.'; return 1;
+        }
+        if dpkg --compare-versions "$installed_version" ge "$version"; then
+            reuse=1
+            juno_log "Visual Studio Code Microsoft $native_version já instalado; pacote existente preservado."
+        fi
+    elif [[ -e $native_root || -L $native_root ]]; then
+        _vscode_error 'O diretório nativo do VS Code existe sem um pacote Debian instalado. Resolva o conflito antes de continuar.'
+        return 1
+    fi
+    if (( ! reuse )); then
+        # Microsoft's postinst removes this historical global launcher. Refuse
+        # to let an unrelated file/link disappear as a side effect of APT.
+        legacy_launcher=$(_vscode_legacy_system_launcher)
+        if [[ -e $legacy_launcher || -L $legacy_launcher ]]; then
+            _vscode_error "Launcher global existente preservado: $legacy_launcher. Mova-o para um backup antes de instalar o pacote Debian."
+            return 1
+        fi
+        juno_log "Baixando Visual Studio Code $version (Microsoft, Debian amd64)."
+        _vscode_fetch "$url" "$stage/code.deb" || return 1
+        printf '%s  %s\n' "$checksum" "$stage/code.deb" | sha256sum --check --status || {
+            _vscode_error 'Checksum SHA-256 inválido; instalação anterior preservada.'; return 1;
+        }
+        _vscode_debian_package "$stage/code.deb" "$version" || return 1
+        # Upstream postinst otherwise adds or rewrites Microsoft's APT source.
+        # Use the package's supported opt-out, preserving every existing source.
+        printf 'code code/add-microsoft-repo boolean false\n' | sudo debconf-set-selections || return 1
+        sudo apt-get install --no-install-recommends --no-remove -- "$stage/code.deb" || return 1
+        _vscode_product "$native_root" "$version" || return 1
+        native_version=$version
+    fi
+    # The native path matches Ubuntu's AppArmor profile for Electron userns.
+    # Keep older per-user releases untouched and replace only managed launchers.
+    _vscode_launchers "$stage" '' "$native_root" "$native_root/bin/code" debian || return 1
+    jq --arg installed "$native_version" '. + {installMethod:"deb",installedVersion:$installed}' \
+        "$metadata" > "$stage/installed.json" || return 1
+    chmod 600 -- "$stage/installed.json" || return 1
+    mv -fT -- "$stage/installed.json" "$JUNO_STATE/apps/vscode.json" || return 1
+    juno_log "Visual Studio Code original $native_version pronto pelo pacote Debian. Configurações e releases anteriores do usuário foram mantidas."
+)
+
+juno_install_vscode() {
+    if [[ ${JUNO_PLATFORM:-arch} == zorin ]]; then
+        _vscode_install_debian
+    else
+        _vscode_install_archive
+    fi
+}

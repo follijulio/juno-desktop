@@ -4,14 +4,14 @@ set -E
 
 JUNO_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 readonly JUNO_ROOT
-for module in common preflight packages validate transaction multilib applications vscode wallpapers gnome posh shell; do
+for module in common platform preflight packages validate transaction multilib applications vscode wallpapers gnome posh fonts shell; do
     # shellcheck source=/dev/null
     source "$JUNO_ROOT/lib/$module.sh"
 done
 
 usage() {
     cat <<'HELP'
-Juno Desktop — instalador para Arch Linux x86_64
+Juno Desktop — instalador para Arch Linux e Zorin OS 18 (GNOME), x86_64
 
 Uso: bash install.sh [opção]
   --dry-run         Exibe verificações e alterações previstas, sem gravar arquivos.
@@ -19,7 +19,8 @@ Uso: bash install.sh [opção]
   --rollback ID     Restaura um backup e preserva o estado atual em outro backup.
   --help            Exibe esta ajuda.
 
-Sem opções: atualiza o Arch e instala a sessão Juno. Execute como usuário comum,
+Sem opções: instala o perfil Juno com pacman (Arch) ou APT (Zorin).
+No Arch, a instalação inclui a atualização completa do sistema. Execute como usuário comum,
 após sair da sessão gráfica e entrar em um terminal de texto (TTY).
 HELP
 }
@@ -55,9 +56,7 @@ juno_main() {
         juno_validate_resources
         juno_validate_gallery
         juno_log 'Simulação: nenhum arquivo, pacote ou serviço será alterado.'
-        printf 'Atualização: sudo pacman -Syu --needed'
-        printf ' %q' "${JUNO_PACKAGES[@]}"
-        printf '\n'
+        juno_packages_plan
         juno_applications_plan
         juno_gnome_plan
         juno_log 'Terminal: Bash com Oh My Posh oficial verificado; JetBrains Mono no Kitty e VS Code. Arquivos existentes serão preservados em backup.'
@@ -108,6 +107,7 @@ juno_main() {
     txn_prepare
     juno_stage_gallery
     juno_stage_terminal
+    juno_stage_fonts
     juno_validate_staged
     if txn_changed; then
         txn_backup

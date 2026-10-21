@@ -5,6 +5,8 @@ set -euo pipefail
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 # shellcheck source=../lib/common.sh
 source "$ROOT/lib/common.sh"
+# shellcheck source=../lib/platform.sh
+source "$ROOT/lib/platform.sh"
 # shellcheck source=../lib/preflight.sh
 source "$ROOT/lib/preflight.sh"
 # shellcheck source=../lib/packages.sh
@@ -102,7 +104,7 @@ ok 'wallpaper adulterado rejeitado antes da aplicação'
 
 if [[ $(uname -s) != Linux || ! -f /etc/arch-release ]]; then
     expect_failure bash "$ROOT/install.sh" --dry-run
-    grep -q 'exige Arch Linux' "$TEST_ROOT/error.log"
+    grep -Eq 'exige Linux|Sistemas suportados' "$TEST_ROOT/error.log"
     ok 'plataforma real incompatível rejeitada sem alterações'
 fi
 printf '%s cenários do instalador passaram.\n' "$passed"

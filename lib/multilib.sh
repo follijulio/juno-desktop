@@ -44,6 +44,10 @@ _juno_multilib_validate_stage() {
 
 juno_multilib_plan() {
     local repositories
+    if [[ ${JUNO_PLATFORM:-arch} == zorin ]]; then
+        juno_log 'Zorin: Steam via Flatpak; arquiteturas dpkg e repositórios APT existentes serão preservados.'
+        return 0
+    fi
     juno_require pacman-conf
     repositories=$(pacman-conf --config /etc/pacman.conf --repo-list) ||
         juno_die 'Não foi possível consultar os repositórios do pacman.'
@@ -93,6 +97,10 @@ _juno_multilib_cleanup() {
 juno_enable_multilib() {
     local repositories config=/etc/pacman.conf workdir original_digest current_digest
     local original_identity current_identity backup backup_digest privileged_file='' mode group
+    if [[ ${JUNO_PLATFORM:-arch} == zorin ]]; then
+        juno_log 'Zorin: nenhuma alteração de multilib ou arquiteturas dpkg é necessária para Steam via Flatpak.'
+        return 0
+    fi
     juno_require pacman-conf install
     repositories=$(pacman-conf --config "$config" --repo-list) ||
         juno_die 'Não foi possível consultar os repositórios do pacman.'

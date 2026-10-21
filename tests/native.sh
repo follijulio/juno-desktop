@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
-[[ $(uname -s) == Linux && -f /etc/arch-release ]] || { printf 'Execute no Arch Linux.\n' >&2; exit 1; }
+[[ $(uname -s) == Linux ]] || { printf 'Execute no Arch Linux ou Zorin OS 18 com GNOME.\n' >&2; exit 1; }
 (( EUID != 0 )) || { printf 'Execute como usuário comum.\n' >&2; exit 1; }
 # Check the installed GNOME schemas/fonts without changing user preferences.
 source "$ROOT/install.sh"
