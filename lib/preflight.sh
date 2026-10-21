@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 
 juno_preflight_base() {
-    [[ $(uname -s) == Linux && -f /etc/arch-release ]] ||
-        juno_die 'Este instalador exige Arch Linux. Nenhuma configuração foi aplicada.'
+    [[ $(uname -s) == Linux ]] ||
+        juno_die 'Este instalador exige Linux. Nenhuma configuração foi aplicada.'
+    juno_detect_platform
     [[ $(uname -m) == x86_64 ]] || juno_die 'Arquitetura suportada: x86_64.'
     (( EUID != 0 )) || juno_die 'Execute como usuário comum. O instalador solicitará sudo para os pacotes.'
     # diffutils is installed by pacman; a fresh Arch does not have it yet.
     juno_require id getent realpath stat find tar gzip sha256sum flock date mktemp cp mv rm chmod df awk sort readlink tee cat sync
-    local actual_user account_home resolved_home parent resolved_parent owner xdg_value expected mode os_id
-    os_id=$(awk -F= '$1 == "ID" {gsub(/"/, "", $2); print $2; exit}' /etc/os-release)
-    [[ $os_id == arch ]] || juno_die 'Somente Arch Linux oficial é suportado; distribuições derivadas não foram validadas.'
+    local actual_user account_home resolved_home parent resolved_parent owner xdg_value expected mode
     actual_user=$(id -un)
     [[ ${USER:-} == "$actual_user" ]] || juno_die 'USER não corresponde ao usuário efetivo.'
     [[ -n ${HOME:-} && $HOME == /* && $HOME != / && $HOME != *$'\n'* && $HOME != *$'\t'* ]] ||
@@ -98,17 +97,28 @@ juno_preflight_terminal() {
 }
 
 juno_preflight_install() {
-    local mode=$1 free_home free_root
-    juno_require sudo pacman curl
+    local mode=$1 free_home free_root network_url
+    juno_set_packages
+    juno_require sudo curl
+    case ${JUNO_PLATFORM:-arch} in
+        arch) juno_require pacman ;;
+        zorin)
+            juno_require apt-get apt-cache dpkg-query
+            juno_require_zorin_desktop
+            ;;
+    esac
     if [[ $mode == apply ]]; then
         juno_preflight_terminal
-        [[ ! -e /var/lib/pacman/db.lck ]] || juno_die 'O pacman está ocupado. Aguarde a outra operação terminar.'
+        if [[ ${JUNO_PLATFORM:-arch} == arch ]]; then
+            [[ ! -e /var/lib/pacman/db.lck ]] || juno_die 'O pacman está ocupado. Aguarde a outra operação terminar.'
+        fi
         free_home=$(df -Pk -- "$JUNO_HOME" | awk 'END {print $4}')
         free_root=$(df -Pk / | awk 'END {print $4}')
         (( free_home >= 524288 && free_root >= 2097152 )) ||
-            juno_die 'Reserve ao menos 512 MiB no diretório pessoal e 2 GiB na raiz. O pacman verificará o espaço adicional.'
+            juno_die 'Reserve ao menos 512 MiB no diretório pessoal e 2 GiB na raiz. O gerenciador de pacotes verificará o espaço adicional.'
     fi
+    network_url=$(juno_platform_network_url) || juno_die 'Não foi possível identificar o endereço de verificação da plataforma.'
     curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
-        --connect-timeout 5 --max-time 20 --head https://archlinux.org/ >/dev/null ||
-        juno_die 'Não foi possível acessar o Arch por HTTPS. Verifique rede, relógio e certificados.'
+        --connect-timeout 5 --max-time 20 --head "$network_url" >/dev/null ||
+        juno_die 'Não foi possível acessar o site da distribuição por HTTPS. Verifique rede, relógio e certificados.'
 }

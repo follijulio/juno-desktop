@@ -69,3 +69,33 @@ As suites mantêm seus serviços, downloads, backend GNOME, `flock` e `sync` sim
 Ainda não foram certificados bloqueio/desbloqueio, suspensão, portais, capturas, áudio, AVIF, jogos ou hardware físico. Esta VM já tinha GNOME e os pacotes principais; não representa uma instalação limpa nem uma migração de sessão Hyprland ativa.
 
 Complete os casos restantes [do roteiro de aceitação](VALIDACAO.md) no ambiente alvo. Os resultados acima cobrem somente as operações efetivamente executadas; os demais casos não devem ser considerados aprovados por consequência.
+
+## Ícones e versão Zorin — 21/10/2026
+
+Esta revisão conclui o tema de ícones iniciado em 20/10 e acrescenta o perfil para Zorin OS 18.x Core/Pro, base Ubuntu 24.04, x86_64. Os resultados de 18/10 acima permanecem históricos: o perfil atual possui oito destinos e sete preferências GNOME. Não houve instalação do Zorin nesta máquina ou na VM Arch.
+
+| Verificação executada | Resultado |
+| --- | --- |
+| Gerador e validador de ícones | 49 desenhos originais, 142 SVGs incluindo aliases; reprodução, SHA-256, índice, fallback e rejeição de conteúdo ativo conferidos |
+| Testes Python | 49 casos: todos aprovados no Linux; no Windows, 47 aprovados e dois casos de symlink ignorados |
+| Aplicação real dos ícones na VM Arch | Tema Juno e oitavo destino aplicados com backup; lançador Arch do VS Code passou a usar nome temático com PNG original em hicolor; nenhum pacote ou binário foi atualizado nesta etapa |
+| GTK/GdkPixbuf reais | Todos os 142 nomes resolvidos em 32 e 64 px: 284 renderizações aprovadas; os 48 lançadores visíveis da VM resolveram SVGs Juno |
+| Fallback real | Ação simbólica resolveu Adwaita; VS Code resolveu o PNG original ao selecionar Adwaita na consulta GTK |
+| Aceitação visual | Login no GDM e grade/dock GNOME conferidos com os novos ícones; captura local da sessão arquivada entre os registros de QA |
+| Rollback real de ícones | Backup novo restaurou a ausência original do tema e as sete preferências; backup antigo de seis chaves preservou `icon-theme`. Restauração de retorno conferiu hashes/modos dos oito destinos e os sete valores |
+| Interrupção e concorrência reais | `flock` entre dois processos, SIGKILL após gravar arquivo e `icon-theme`, recuperação em novo processo e remoção do diário aprovados; arquivos e sete valores restaurados |
+| Reaplicação real | Perfil sem alterações reconhecido sem novo backup; preferências anteriores da VM foram restauradas ao concluir os testes |
+| `bash tests/native.sh` no Arch | Aprovado com os novos testes Zorin simulados, 49 casos Python sem ignorados, 24 transações de arquivos, 12 transações GNOME, 29 cenários VS Code e 21 de wallpaper |
+| Isolamento da plataforma nos testes | Suíte completa repetida no Linux com `JUNO_PLATFORM=zorin` herdado: aprovada. Fixtures escolhem a plataforma sem depender da distribuição do host |
+| Zorin: plataforma/APT/GDM | 17 cenários simulados aprovados: identificação sem executar `os-release`, rejeição de bases incompatíveis, instalação somente de dependências ausentes, falhas, inventários, dry-run e GDM3 sem início/reinício |
+| Zorin: fontes e integração | Quatro cenários de fontes e cinco de integração aprovados; recursos corrompidos recusados, staging sem duplicação e perfil aplicado apesar da recusa dos aplicativos opcionais |
+| Fontes oficiais locais | Arquivo Nerd Fonts 3.5.1 verificado pelo SHA-256 publicado; quatro TTFs, licença e metadados incluídos. Fontconfig real no Linux reconheceu as quatro variantes como JetBrainsMono Nerd Font Mono |
+| Aplicativos e VS Code | 18 cenários de aplicativos e 29 de VS Code aprovados; instalações existentes preservadas, falhas SHA/identidade/arquitetura/APT e conflitos de lançadores cobertos. Links reais conferidos no Linux |
+| Pacotes Zorin | Os 59 nomes APT existem nos índices oficiais Ubuntu Noble; listas oficiais Zorin 18.1 Core/Pro incluem os componentes mínimos GNOME/GDM exigidos |
+| Pacote Microsoft real | Download oficial 1.143.0 verificado por SHA-256 e inspecionado sem instalar: pacote `code`, versão `1.143.0-1792533444`, amd64, ícone `vscode` coberto pelo tema e entrada nativa preservada |
+| Compatibilidade de configuração | JSONC passou também no Node 18.19.1 oficial verificado. Opções Kitty conferidas com a definição oficial 0.32.2; removida `cursor_trail`, indisponível nessa versão |
+| `bash tests/run.sh` no Windows, revisão final | Aprovado; sintaxe, ShellCheck, 49 casos Python (dois ignorados por links), recursos e todas as suites Bash concluídos |
+| Pacote final | 298 arquivos, 201 checksums de recursos, LF e modos executáveis conferidos; geração repetida produziu o mesmo SHA-256 |
+| Projeto na VM | 187 arquivos atualizados após comparar com a versão anterior; cópias substituídas preservadas, sem sobrescrever divergências desconhecidas |
+
+APT, scripts de manutenção de pacotes, AppArmor, Flatpak, autenticação e login gráfico ainda exigem aceitação em Zorin real. Testes executados no Arch com chamadas APT simuladas não certificam esses componentes do Zorin. A inspeção do `.deb` não equivale à sua instalação. A VM continua sem representar instalação limpa ou migração Hyprland ativa; os limites de hardware e serviços registrados acima permanecem.

@@ -6,6 +6,7 @@ ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 source "$ROOT/lib/common.sh"
 # shellcheck source=../lib/applications.sh
 source "$ROOT/lib/applications.sh"
+JUNO_PLATFORM=arch
 TEST_ROOT=$(mktemp -d)
 trap 'rm -rf -- "$TEST_ROOT"' EXIT
 JUNO_STATE="$TEST_ROOT/state"
@@ -14,6 +15,9 @@ CALLS="$TEST_ROOT/calls"
 REMOTE_URL=''
 REMOTE_OPTIONS=''
 INSTALL_STATUS=0
+INFO_USER_IDS=''
+INFO_SYSTEM_IDS=''
+INFO_ORIGIN=flathub
 flatpak() {
     printf '%s\n' "$*" >> "$CALLS"
     case $1 in
@@ -22,7 +26,17 @@ flatpak() {
             ;;
         remote-add) REMOTE_URL=https://dl.flathub.org/repo/ ;;
         install) return "$INSTALL_STATUS" ;;
-        info) printf 'spotify-test-commit\n' ;;
+        info)
+            if [[ $* == *--show-commit* ]]; then
+                printf 'spotify-test-commit\n'
+            elif [[ $* == *--show-origin* ]]; then
+                printf '%s\n' "$INFO_ORIGIN"
+            elif [[ $2 == --user ]]; then
+                [[ " $INFO_USER_IDS " == *" ${*: -1} "* ]] || return 1
+            else
+                [[ " $INFO_SYSTEM_IDS " == *" ${*: -1} "* ]] || return 1
+            fi
+            ;;
         *) return 99 ;;
     esac
     return 0
@@ -91,4 +105,69 @@ if juno_install_applications > "$TEST_ROOT/error" 2>&1; then exit 1; else status
 [[ $status == 7 ]]
 grep -q '^vscode$' "$CALLS"
 printf 'OK: falha do VS Code obrigatório continua sendo propagada\n'
-printf '10 cenários de aplicativos passaram.\n'
+
+VSCODE_STATUS=0
+INSTALL_STATUS=0
+REMOTE_URL=https://dl.flathub.org/repo/
+: > "$CALLS"
+juno_install_zorin_app com.valvesoftware.Steam Steam juno-test-absent-command steam >/dev/null
+grep -q '^install --user --or-update flathub com.valvesoftware.Steam$' "$CALLS"
+[[ -s $JUNO_STATE/apps/steam.commit ]]
+printf 'OK: Steam no Zorin é instalado como Flatpak do usuário sem multilib\n'
+
+juno_test_existing_app() { :; }
+: > "$CALLS"
+juno_install_zorin_app com.discordapp.Discord Discord juno_test_existing_app discord >/dev/null
+[[ ! -s $CALLS ]]
+printf 'OK: aplicativo nativo existente evita instalação e consultas Flatpak\n'
+
+INFO_SYSTEM_IDS=com.valvesoftware.Steam
+: > "$CALLS"
+juno_install_zorin_app com.valvesoftware.Steam Steam juno-test-absent-command steam >/dev/null
+if grep -q '^install\|^remote-add\|^remotes ' "$CALLS"; then exit 1; fi
+printf 'OK: aplicativo Flatpak do sistema não é duplicado no usuário\n'
+
+INFO_SYSTEM_IDS=''
+INFO_USER_IDS=com.discordapp.Discord
+INFO_ORIGIN=private-origin
+REMOTE_URL=https://example.invalid/repo
+: > "$CALLS"
+juno_install_zorin_app com.discordapp.Discord Discord juno-test-absent-command discord >/dev/null
+if grep -q '^install\|^remote-add\|^remotes ' "$CALLS"; then exit 1; fi
+printf 'OK: origem de aplicativo existente é preservada sem substituir remotes\n'
+
+INFO_ORIGIN=flathub
+: > "$CALLS"
+if (juno_install_zorin_app com.discordapp.Discord Discord juno-test-absent-command discord) > "$TEST_ROOT/error" 2>&1; then exit 1; fi
+grep -q 'endereço diferente' "$TEST_ROOT/error"
+if grep -q '^install ' "$CALLS"; then exit 1; fi
+printf 'OK: atualização Zorin recusa Flathub inseguro antes do download\n'
+
+REMOTE_URL=https://dl.flathub.org/repo/
+JUNO_PLATFORM=zorin
+spotify() { :; }
+: > "$CALLS"
+juno_install_spotify >/dev/null
+[[ ! -s $CALLS ]]
+printf 'OK: Spotify nativo do Zorin não recebe instalação Flatpak duplicada\n'
+
+juno_install_zorin_app() {
+    printf 'zorin-app %s\n' "$1" >> "$CALLS"
+    juno_die 'recusa simulada do aplicativo opcional'
+}
+: > "$CALLS"
+juno_install_applications > "$TEST_ROOT/error" 2>&1
+grep -q '^zorin-app com.valvesoftware.Steam$' "$CALLS"
+grep -q '^zorin-app com.discordapp.Discord$' "$CALLS"
+grep -q '^vscode$' "$CALLS"
+grep -q 'Steam não foi instalado' "$TEST_ROOT/error"
+grep -q 'Discord não foi instalado' "$TEST_ROOT/error"
+printf 'OK: recusa de Steam e Discord no Zorin não interrompe VS Code nem o desktop\n'
+
+: > "$CALLS"
+juno_applications_plan > "$TEST_ROOT/plan"
+grep -q 'pacote .deb' "$TEST_ROOT/plan"
+if grep -q 'pelo pacman\|sudo pacman\|Steam: habilitar' "$TEST_ROOT/plan"; then exit 1; fi
+[[ ! -s $CALLS ]]
+printf 'OK: plano Zorin informa APT/Flatpak sem executar instalação\n'
+printf '18 cenários de aplicativos passaram.\n'

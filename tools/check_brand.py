@@ -158,7 +158,7 @@ def main() -> None:
         check_active_config(directory, errors)
     kitty = (config / "kitty/kitty.conf").read_text(encoding="utf-8")
     require(all(f"color{index} " in kitty for index in range(16)), "Kitty precisa definir as 16 cores ANSI", errors)
-    for directory in (root / "assets/fonts/spacemono", root / "assets/desktop/wallpapers"):
+    for directory in (root / "assets/fonts/spacemono", root / "assets/fonts/jetbrainsmono-nerd", root / "assets/desktop/wallpapers"):
         check_manifest(directory, errors)
     fonts = root / "assets/fonts/spacemono"
     metadata = json.loads((fonts / "source.json").read_text(encoding="utf-8"))

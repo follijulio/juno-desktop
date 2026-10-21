@@ -1,12 +1,14 @@
 # Juno Desktop
 
-Ambiente para **Arch Linux x86_64 com GNOME e Wayland**. O GNOME fornece painel, aplicativos, notificações, capturas, bloqueio e energia. O Juno configura fontes, ícones de aplicativos, wallpaper, Kitty e ferramentas de desenvolvimento, sem extensões ou atalhos globais adicionais.
+Ambiente para **Arch Linux e Zorin OS 18.x Core/Pro, x86_64, com GNOME**. O GNOME fornece painel, aplicativos, notificações, capturas, bloqueio e energia. O Juno configura fontes, ícones de aplicativos, wallpaper, Kitty e ferramentas de desenvolvimento, sem instalar extensões ou atalhos globais adicionais.
+
+No Zorin 18, use Core ou Pro com GNOME e GDM já instalados. A edição Lite usa XFCE e fica fora deste perfil, assim como Zorin 17 e outras distribuições derivadas do Ubuntu. O instalador mantém o ambiente, os layouts e as extensões já existentes do Zorin; as alterações do Juno são as mesmas fontes, ícones, wallpaper, terminais e preferências descritas abaixo. A versão Zorin possui verificações portáteis; a aceitação em uma instalação Zorin real ainda precisa ser feita. Consulte os [resultados efetivos](docs/RESULTADOS.md).
 
 A interface e os documentos usam Roboto; aplicativos monoespaçados GNOME usam Space Mono. **JetBrains Mono** é usada no editor do VS Code, e **JetBrainsMono Nerd Font Mono** no Kitty e no terminal integrado. Kitty usa tamanho 12; os tamanhos existentes do editor são preservados. Os terminais usam Bash com Oh My Posh, sem mudar o shell de login da conta.
 
 ## Instalar
 
-Use uma conta comum com `sudo` e diretórios XDG padrão. O instalador atualiza **todo o sistema** e instala pacotes oficiais, além dos aplicativos abaixo. Arquivos gerenciados e preferências GNOME alteradas recebem backup.
+Use uma conta comum com `sudo` e diretórios XDG padrão. O mesmo `install.sh` detecta a distribuição. No Arch, atualiza **todo o sistema** pelo pacman. No Zorin, atualiza o índice APT e instala somente dependências ausentes com `--no-upgrade --no-remove`, sem atualizar a versão da distribuição, adicionar PPAs ou substituir a pilha de áudio. Arquivos gerenciados e preferências GNOME alteradas recebem backup.
 
 1. Extraia o projeto. Na distribuição, confira o checksum antes de extrair:
 
@@ -28,13 +30,13 @@ Use uma conta comum com `sudo` e diretórios XDG padrão. O instalador atualiza 
    bash install.sh
    ```
 
-4. Confira o resultado e selecione **GNOME** no gerenciador de login após reiniciar quando conveniente.
+4. Confira o resultado e entre novamente na sessão GNOME, ou na sessão Zorin existente. Reinicie quando as atualizações do sistema exigirem.
 
 O GDM é habilitado somente quando nenhum outro gerenciador de login está configurado. Gerenciadores existentes, máscaras de serviço e alvo de boot são preservados. O instalador informa quando é preciso revisá-los manualmente e não inicia nem reinicia serviços de login.
 
 Não execute `sudo bash install.sh`. Alternar para um TTY mantendo a sessão gráfica aberta não é suficiente: o instalador procura sessões gráficas da conta, inclusive em outros TTYs.
 
-São necessários `sudo`, `curl`, `tar`, `gzip`, `coreutils`, `findutils`, `util-linux`, `gawk` e `glibc` para as verificações iniciais. `diffutils` é instalado pelo pacman em uma instalação nova; recuperação e rollback exigem que já esteja disponível. Instale ferramentas faltantes pelo pacman. Diretório pessoal e ancestrais dos destinos precisam pertencer à conta e impedir gravação por terceiros.
+São necessários `sudo`, `curl`, `tar`, `gzip`, `coreutils`, `findutils`, `util-linux`, um `awk` e a biblioteca C para as verificações iniciais, além de pacman no Arch ou APT/dpkg no Zorin. `diffutils` é instalado com as dependências; recuperação e rollback exigem que já esteja disponível. Instale ferramentas faltantes pelo gerenciador da distribuição. Diretório pessoal e ancestrais dos destinos precisam pertencer à conta e impedir gravação por terceiros.
 
 ## GNOME e migração
 
@@ -67,16 +69,16 @@ O VS Code recebe JetBrains Mono no editor, Nerd Font Mono no terminal integrado 
 
 | Grupo | Aplicativos e ferramentas |
 | --- | --- |
-| Uso diário | Firefox, Nautilus, mpv e pavucontrol |
+| Uso diário | Firefox no Arch; navegador existente no Zorin; Nautilus, mpv e pavucontrol |
 | Entretenimento | Spotify, Steam e Discord |
 | Editor | **Visual Studio Code original da Microsoft**, estável, com Marketplace original |
-| Python | Python, pip, uv e ambientes virtuais |
+| Python | Python, pip e ambientes virtuais; uv no Arch |
 | JavaScript | Node.js e npm |
 | C e C++ | GCC, Make, Clang, CMake, Ninja, pkgconf, GDB e LLDB |
 | Go e Rust | Go, Rust e Cargo |
 | Desenvolvimento | Git, GitHub CLI, SQLite, ripgrep, fd, ShellCheck e shfmt |
 
-O VS Code fica em `~/.local/share/juno-apps/vscode/`, com versões anteriores preservadas, comando `~/.local/bin/code` e entrada nos aplicativos. O pacote `code` do Arch, Code-OSS e VSCodium não substituem a distribuição Microsoft.
+No Arch, o VS Code fica em `~/.local/share/juno-apps/vscode/`, com versões anteriores preservadas. No Zorin, usa o pacote `.deb` oficial da Microsoft, verificado por SHA-256 e instalado via APT, sem adicionar o repositório Microsoft. O executável usa o caminho do pacote para a integração nativa de sandbox; não é aplicado `--no-sandbox`. Releases antigas instaladas por usuário são preservadas. Ambas as versões fornecem `~/.local/bin/code` e entrada nos aplicativos. Code-OSS e VSCodium não substituem a distribuição Microsoft.
 
 Um arquivo gerenciado em `~/.config/environment.d/90-juno.conf` prepara os caminhos dos comandos locais e dos aplicativos Flatpak na próxima sessão GNOME.
 
@@ -86,15 +88,17 @@ Spotify é opcional e usa Flatpak por usuário via Flathub; seu empacotamento é
 flatpak update --user
 ```
 
-Steam habilita `multilib` quando necessário e preserva `/etc/pacman.conf` em um backup registrado. O pacman pode pedir um provider Vulkan de 32 bits: escolha o correspondente à sua GPU. O instalador não escolhe drivers de vídeo nem habilita repositórios de teste.
+No Arch, Steam habilita `multilib` quando necessário e preserva `/etc/pacman.conf` em um backup registrado. O pacman pode pedir um provider Vulkan de 32 bits: escolha o correspondente à sua GPU. No Zorin, Steam e Discord são opcionais e usam Flatpak por usuário quando ainda não estão instalados. Instalações nativas ou Flatpak existentes são preservadas; recusa ou falha na instalação desses aplicativos permite continuar o perfil. O Juno não adiciona arquitetura i386 nem altera repositórios APT para eles. O instalador não escolhe drivers de vídeo nem habilita repositórios de teste.
 
 Para Python, use ambientes isolados por projeto:
 
 ```bash
-uv venv
+python3 -m venv .venv
 source .venv/bin/activate
-uv pip install nome-do-pacote
+python -m pip install nome-do-pacote
 ```
+
+No Arch, `uv` também é instalado. No Zorin, o pacote `fd-find` fornece o comando `fdfind`.
 
 Extensões de editor, pacotes globais pip/npm e serviços de contêiner não são instalados automaticamente.
 
@@ -128,7 +132,7 @@ Somente as chaves gerenciadas são restauradas, sem substituir a base dconf inte
 
 Uma execução interrompida é recuperada pelo diário antes da próxima aplicação. Alterações concorrentes ou recuperação ambígua interrompem a operação e preservam os arquivos envolvidos. Não apague diário ou backups para forçar a instalação. Consulte [arquitetura e recuperação](docs/ARQUITETURA.md).
 
-**Pacotes, aplicativos, versões do Oh My Posh, atualizações do Arch e habilitação do GDM não são revertidos pelo rollback de configurações.** Backups de multilib e registros de pacotes/GDM ficam disponíveis separadamente. Para desfazer somente uma habilitação do GDM feita pelo Juno, confira o registro e use `sudo systemctl disable gdm.service`.
+**Pacotes, aplicativos, versões do Oh My Posh, atualizações do sistema e habilitação do GDM não são revertidos pelo rollback de configurações.** Backups de multilib e registros de pacotes/GDM ficam disponíveis separadamente. Para desfazer somente uma habilitação do GDM feita pelo Juno, confira o serviço registrado: `gdm.service` no Arch ou `gdm3.service` no Zorin.
 
 ## Verificar e distribuir
 
@@ -136,7 +140,7 @@ Uma execução interrompida é recuperada pelo diário antes da próxima aplica�
 # Sintaxe, ShellCheck quando disponível e testes com serviços simulados.
 bash tests/run.sh
 
-# Verificações disponíveis no Arch, como usuário comum.
+# Verificações disponíveis no sistema alvo, como usuário comum.
 bash tests/native.sh
 
 # Distribuição com LF, permissões POSIX e SHA-256.
@@ -145,8 +149,8 @@ python3 tools/package.py
 
 O pacote fica em `dist/juno-desktop.tar.gz`, acompanhado de `SHA256SUMS`. Falhas de preparação não substituem uma distribuição anterior. A reprodução do wallpaper compara estrutura e pixels, tolerando diferenças de compressão entre versões de zlib.
 
-Testes no Windows não certificam uma sessão GNOME real. Veja [resultados efetivos](docs/RESULTADOS.md) e [aceitação no Arch](docs/VALIDACAO.md).
+Testes no Windows não certificam uma sessão GNOME real. Veja [resultados efetivos](docs/RESULTADOS.md) e [aceitação no Arch e no Zorin](docs/VALIDACAO.md).
 
-Space Mono permanece em `assets/fonts/spacemono/`, com quatro arquivos originais, licença e checksums. Roboto, JetBrains Mono e sua variante Nerd Font vêm de pacotes oficiais do Arch.
+Space Mono permanece em `assets/fonts/spacemono/`, com quatro arquivos originais, licença e checksums. Roboto e JetBrains Mono vêm dos pacotes da distribuição. No Arch, a Nerd Font também vem do pacote oficial. No Zorin, as quatro variantes de JetBrainsMono Nerd Font Mono acompanham o projeto em `assets/fonts/jetbrainsmono-nerd/`, provenientes da release oficial Nerd Fonts 3.5.1, com licença e SHA-256. São instaladas junto à Space Mono no destino gerenciado de fontes e entram no backup; esses TTFs locais não exigem download durante a instalação. Todas as famílias são conferidas antes da aplicação do perfil.
 
-Referências: [identidade visual](docs/IDENTIDADE-VISUAL.md), [GNOME](https://www.gnome.org/), [pacotes oficiais Arch](https://archlinux.org/packages/), [Oh My Posh](https://ohmyposh.dev/docs/installation/linux), [VS Code Linux](https://code.visualstudio.com/docs/setup/linux), [Spotify no Flathub](https://flathub.org/en/apps/com.spotify.Client).
+Referências: [identidade visual](docs/IDENTIDADE-VISUAL.md), [GNOME](https://www.gnome.org/), [pacotes oficiais Arch](https://archlinux.org/packages/), [versões e ambientes do Zorin](https://zorin.com/os/details/), [Oh My Posh](https://ohmyposh.dev/docs/installation/linux), [VS Code Linux](https://code.visualstudio.com/docs/setup/linux), [Spotify no Flathub](https://flathub.org/en/apps/com.spotify.Client).

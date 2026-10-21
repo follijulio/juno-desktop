@@ -71,7 +71,10 @@ juno_gnome_plan() {
     juno_log 'GNOME: Shell, Configurações, Nautilus, chaveiro e portal nativo; nenhuma remoção de pacotes existentes.'
     juno_log 'Perfil: ícones Juno, Roboto na interface, Space Mono em apps monoespaçados e wallpaper Ghibli; JetBrains Mono regular/Nerd para Kitty e VS Code.'
     juno_log 'GDM: habilitar para o próximo boot somente se nenhum outro gerenciador de login estiver configurado; sem iniciar ou reiniciar serviços.'
-    juno_log 'GSettings: validação de schemas e permissões após instalar python-gobject; backup por chave, incluindo valores ausentes.'
+    juno_log 'GSettings: validação de schemas e permissões após instalar PyGObject; backup por chave, incluindo valores ausentes.'
+    if [[ ${JUNO_PLATFORM:-arch} == zorin ]]; then
+        juno_log 'Zorin: preservar a sessão e as extensões fornecidas pela distribuição, o áudio e o GDM existentes.'
+    fi
 }
 
 juno_validate_gnome() {
@@ -93,7 +96,7 @@ _juno_existing_display_manager() {
     alias=$(_juno_display_manager_alias) || return 2
     if [[ -n $alias ]]; then printf '%s\n' "$alias"; return 0; fi
     # Some managers are enabled without installing the usual shared alias.
-    for service in gdm sddm lightdm greetd ly lxdm xdm slim emptty lemurs; do
+    for service in gdm gdm3 sddm lightdm greetd ly lxdm xdm slim emptty lemurs; do
         state=$(systemctl is-enabled "$service.service" 2>/dev/null) || :
         case $state in
             enabled|enabled-runtime|linked|linked-runtime|alias)
@@ -126,6 +129,8 @@ _juno_gdm_archive_pending() {
 
 juno_configure_gdm() {
     local existing='' default_target state pending="$JUNO_STATE/gdm-enable.pending.tsv" query_status
+    local gdm_service=gdm.service
+    [[ ${JUNO_PLATFORM:-arch} != zorin ]] || gdm_service=gdm3.service
     _txn_require_lock || return 1
     juno_require systemctl sudo
     if [[ -e $pending || -L $pending ]]; then
@@ -140,18 +145,18 @@ juno_configure_gdm() {
         juno_warn "Alvo de boot preservado: $default_target. Para abrir o login gráfico no boot, execute explicitamente: sudo systemctl set-default graphical.target"
     fi
     if existing=$(_juno_existing_display_manager); then
-        if [[ ${existing##*/} == gdm.service ]]; then
+        if [[ ${existing##*/} == gdm.service || ${existing##*/} == gdm3.service ]]; then
             juno_log 'GDM já está configurado. Nenhum serviço foi iniciado ou reiniciado.'
         else
             juno_warn "Gerenciador de login preservado: $existing. Escolha GNOME na seleção de sessões desse gerenciador."
-            juno_warn 'Para trocar para GDM, revise manualmente o serviço atual antes de habilitar gdm.service; Juno não substitui seu gerenciador de login.'
+            juno_warn "Para trocar para GDM, revise manualmente o serviço atual antes de habilitar $gdm_service; Juno não substitui seu gerenciador de login."
         fi
         return 0
     else
         query_status=$?
         (( query_status == 1 )) || { juno_warn 'Não foi possível identificar o gerenciador de login; GDM não foi alterado.'; return 1; }
     fi
-    state=$(systemctl is-enabled gdm.service 2>/dev/null) || :
+    state=$(systemctl is-enabled "$gdm_service" 2>/dev/null) || :
     case $state in
         masked|masked-runtime)
             juno_warn 'GDM está mascarado. A máscara foi preservada; revise-a manualmente se desejar usar GDM.'
@@ -163,12 +168,12 @@ juno_configure_gdm() {
     # Persist the intention so a later run can diagnose a partial enable.
     (umask 077; printf 'juno-gdm\t1\nprevious\t%s\ndefault-target\t%s\naction\tenable-gdm-only\n' "$state" "$default_target" > "$pending") || return 1
     sync -f "$JUNO_STATE" || return 1
-    if sudo systemctl enable gdm.service; then
+    if sudo systemctl enable "$gdm_service"; then
         _juno_gdm_archive_pending enabled || return 1
-        juno_log 'GDM habilitado para o próximo boot gráfico. Para desfazer somente esta habilitação: sudo systemctl disable gdm.service'
+        juno_log "GDM habilitado para o próximo boot gráfico. Para desfazer somente esta habilitação: sudo systemctl disable $gdm_service"
     else
         _juno_gdm_archive_pending enable-failed || :
-        juno_warn 'Não foi possível habilitar GDM. As configurações GNOME já confirmadas foram preservadas; confira systemctl is-enabled gdm.service.'
+        juno_warn "Não foi possível habilitar GDM. As configurações GNOME já confirmadas foram preservadas; confira systemctl is-enabled $gdm_service."
         return 1
     fi
 }

@@ -20,6 +20,9 @@ juno_validate_resources() {
             juno_die 'A integridade do parser JSONC não foi confirmada.'
     fi
     juno_validate_icons "$JUNO_ROOT/assets/icons/Juno"
+    if [[ ${JUNO_PLATFORM:-arch} == zorin ]]; then
+        juno_validate_nerd_fonts
+    fi
 }
 
 juno_validate_icons() {
@@ -55,9 +58,15 @@ juno_validate_staged() {
     fonts_stage=$(txn_stage_for '.local/share/fonts/juno') || return 1
     for file in "$fonts_stage"/*.ttf; do
         family=$(fc-scan --format '%{family}\n' "$file")
-        [[ $family == *'Space Mono'* ]] || juno_die "Família incorreta no arquivo: $file."
+        case ${file##*/} in
+            SpaceMono-*) [[ $family == 'Space Mono' || $family == 'Space Mono,'* ]] ;;
+            JetBrainsMonoNerdFontMono-*) [[ $family == 'JetBrainsMono Nerd Font Mono' || $family == 'JetBrainsMono Nerd Font Mono,'* ]] ;;
+            *) false ;;
+        esac || juno_die "Família incorreta no arquivo: $file."
     done
     for family in Roboto 'JetBrains Mono' 'JetBrainsMono Nerd Font Mono'; do
+        # On Zorin Nerd Font is still in the staged, verified fonts destination.
+        [[ ${JUNO_PLATFORM:-arch} == zorin && $family == 'JetBrainsMono Nerd Font Mono' ]] && continue
         juno_validate_font_family "$family"
     done
     juno_gsettings_validate

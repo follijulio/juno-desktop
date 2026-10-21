@@ -20,7 +20,7 @@ done
 [[ -n $output && $# == 1 ]] || exit 64
 printf '%s\n' "$1" >>"$TEST_CURL_LOG"
 case $1 in
-    https://update.code.visualstudio.com/api/update/linux-x64/stable/latest)
+    https://update.code.visualstudio.com/api/update/linux-x64/stable/latest|https://update.code.visualstudio.com/api/update/linux-deb-x64/stable/latest)
         [[ ${TEST_OFFLINE:-0} == 0 ]] || exit 6
         cp -- "$TEST_METADATA" "$output";;
     https://vscode.download.prss.microsoft.com/*)
@@ -86,10 +86,60 @@ fixture() {
     TEST_CODE_ARGS="$CASE_ROOT/code-args"
     : >"$TEST_CURL_LOG"
     TEST_OFFLINE=0 TEST_BINARY_FAIL=0
+    JUNO_PLATFORM=arch
     export TEST_ARCHIVE TEST_METADATA TEST_CURL_LOG TEST_OFFLINE TEST_BINARY_FAIL TEST_CODE_ARGS
     # The real helper's allowlist is extended to apps in the main installer.
     _txn_mkdir_home '.local/state/juno-desktop/apps'
     make_archive original
+}
+
+debian_fixture() {
+    fixture
+    JUNO_PLATFORM=zorin
+    TEST_NATIVE_ROOT="$CASE_ROOT/native-code"
+    TEST_NATIVE_ARCHIVE=$TEST_ARCHIVE
+    TEST_APT_LOG="$CASE_ROOT/apt-calls"
+    TEST_DPKG_STATE="$CASE_ROOT/dpkg-state"
+    TEST_APT_FAIL=0
+    TEST_GLOBAL_LAUNCHER="$CASE_ROOT/global-code"
+    TEST_ARCHIVE="$CASE_ROOT/vendor.deb"
+    : > "$TEST_APT_LOG"
+    make_debian code amd64 "$TEST_VERSION-1234567890"
+    _vscode_native_root() { printf '%s' "$TEST_NATIVE_ROOT"; }
+    _vscode_legacy_system_launcher() { printf '%s' "$TEST_GLOBAL_LAUNCHER"; }
+    dpkg-query() { [[ -f $TEST_DPKG_STATE ]] && cat -- "$TEST_DPKG_STATE"; }
+    dpkg-deb() {
+        [[ $1 == --field ]] || return 99
+        jq -er --arg field "$3" '.[$field] | strings' "$2"
+    }
+    dpkg() {
+        [[ $1 == --compare-versions && $3 == ge ]] || return 99
+        python3 - "$2" "$4" <<'PY'
+import sys
+def version(value):
+    return tuple(map(int, value.split("-", 1)[0].split(".")))
+sys.exit(0 if version(sys.argv[1]) >= version(sys.argv[2]) else 1)
+PY
+    }
+    # sudo is replaced below, so these functions remain entirely unprivileged.
+    # shellcheck disable=SC2032,SC2329
+    debconf-set-selections() { cat >> "$TEST_APT_LOG"; }
+    # shellcheck disable=SC2032,SC2329
+    apt-get() {
+        printf '%s\n' "$*" >> "$TEST_APT_LOG"
+        [[ $TEST_APT_FAIL == 0 ]] || return 100
+        [[ $* == "install --no-install-recommends --no-remove -- "* ]] || return 99
+        mkdir -p -- "$TEST_NATIVE_ROOT"
+        tar --extract --gzip --file "$TEST_NATIVE_ARCHIVE" --directory "$TEST_NATIVE_ROOT" --strip-components=1
+        printf 'installed\tamd64\t%s-1234567890\n' "$TEST_VERSION" > "$TEST_DPKG_STATE"
+    }
+    sudo() { "$@"; }
+}
+
+make_debian() {
+    jq -n --arg package "$1" --arg arch "$2" --arg version "$3" \
+        '{Package:$package,Architecture:$arch,Version:$version}' > "$TEST_ARCHIVE"
+    metadata
 }
 make_archive() {
     local kind=$1
@@ -388,13 +438,144 @@ test_external_ancestor() {
     [[ ! -s $TEST_CURL_LOG ]] || fail 'consulta realizada com ancestral externo'
 }
 
+test_debian_install() {
+    debian_fixture
+    _txn_mkdir_home '.local/share/juno-apps/vscode/releases'
+    printf 'preservar release do usuário\n' > "$(app_path)/releases/sentinel"
+    _txn_mkdir_home '.config/Code/User'
+    printf '{"custom":true}\n' > "$JUNO_HOME/.config/Code/User/settings.json"
+    juno_install_vscode
+    grep -qx 'code code/add-microsoft-repo boolean false' "$TEST_APT_LOG" || fail 'opt-out do repositório Microsoft ausente'
+    grep -q '^install --no-install-recommends --no-remove -- ' "$TEST_APT_LOG" || fail 'instalação Debian sem restrição de remoções'
+    "$JUNO_HOME/.local/bin/code" native-argument
+    [[ $(tr -d '\000' < "$TEST_CODE_ARGS") == native-argument ]] || fail 'wrapper não usa executável nativo'
+    [[ $(cat "$(app_path)/releases/sentinel") == 'preservar release do usuário' ]] || fail 'release antiga do usuário alterada'
+    [[ $(cat "$JUNO_HOME/.config/Code/User/settings.json") == '{"custom":true}' ]] || fail 'preferências anteriores alteradas'
+    expect_absent "$JUNO_HOME/.local/share/applications/juno-vscode.desktop"
+    cmp -s -- "$(icon_path)" "$TEST_NATIVE_ROOT/resources/app/resources/linux/code.png" || fail 'fallback nativo ausente'
+    jq -e '.installMethod == "deb" and .installedVersion == "1.2.3"' "$JUNO_STATE/apps/vscode.json" >/dev/null
+    [[ $(wc -l < "$TEST_CURL_LOG") == 2 ]] || fail 'download Debian incompleto'
+}
+
+test_debian_idempotence() {
+    debian_fixture
+    juno_install_vscode
+    juno_install_vscode
+    [[ $(wc -l < "$TEST_CURL_LOG") == 3 ]] || fail 'pacote Debian existente foi baixado novamente'
+    [[ $(grep -c '^install ' "$TEST_APT_LOG") == 1 ]] || fail 'APT repetido para versão instalada'
+    [[ ! -d $JUNO_STATE/apps/backups ]] || fail 'launcher Debian idêntico criou backup'
+}
+
+test_debian_legacy_launcher_preserved() {
+    debian_fixture
+    _txn_mkdir_home '.local/share/applications'
+    printf '[Desktop Entry]\nName=Visual Studio Code\nX-Juno-Managed=true\n' > "$JUNO_HOME/.local/share/applications/juno-vscode.desktop"
+    cp -- "$JUNO_HOME/.local/share/applications/juno-vscode.desktop" "$CASE_ROOT/previous-desktop"
+    juno_install_vscode
+    grep -qx 'Hidden=true' "$JUNO_HOME/.local/share/applications/juno-vscode.desktop" || fail 'launcher antigo produziria entrada duplicada'
+    local backup
+    backup=$(find "$JUNO_STATE/apps/backups" -mindepth 1 -maxdepth 1 -type d -print -quit)
+    cmp -s -- "$backup/juno-vscode.desktop" "$CASE_ROOT/previous-desktop" || fail 'launcher antigo não foi preservado'
+    juno_install_vscode
+    [[ $(find "$JUNO_STATE/apps/backups" -mindepth 1 -maxdepth 1 -type d | wc -l) == 1 ]] || fail 'tombstone idêntico criou outro backup'
+}
+
+test_debian_newer_preserved() {
+    debian_fixture
+    juno_install_vscode
+    printf 'installed\tamd64\t1.2.4-1234567890\n' > "$TEST_DPKG_STATE"
+    jq '.version="1.2.4"' "$TEST_NATIVE_ROOT/resources/app/package.json" > "$CASE_ROOT/changed.json"
+    mv -- "$CASE_ROOT/changed.json" "$TEST_NATIVE_ROOT/resources/app/package.json"
+    juno_install_vscode
+    [[ $(wc -l < "$TEST_CURL_LOG") == 3 ]] || fail 'versão Debian mais nova provocou download'
+    [[ $(grep -c '^install ' "$TEST_APT_LOG") == 1 ]] || fail 'versão Debian mais nova foi substituída'
+    jq -e '.installedVersion == "1.2.4"' "$JUNO_STATE/apps/vscode.json" >/dev/null
+}
+
+test_debian_invalid_identity() {
+    local kind
+    for kind in package architecture version; do
+        debian_fixture
+        case $kind in
+            package) make_debian code-oss amd64 "$TEST_VERSION-1234567890" ;;
+            architecture) make_debian code arm64 "$TEST_VERSION-1234567890" ;;
+            version) make_debian code amd64 1.2.2-1234567890 ;;
+        esac
+        if juno_install_vscode; then fail "pacote Debian inválido aceito: $kind"; fi
+        [[ ! -s $TEST_APT_LOG ]] || fail 'pacote inválido chegou ao sudo/APT'
+        expect_absent "$JUNO_HOME/.local/bin/code"
+    done
+}
+
+test_debian_corrupt_preserves_launchers() {
+    debian_fixture
+    _txn_mkdir_home '.local/bin'
+    printf 'launcher anterior\n' > "$JUNO_HOME/.local/bin/code"
+    printf 'corrompido\n' >> "$TEST_ARCHIVE"
+    if juno_install_vscode; then fail 'checksum Debian inválido aceito'; fi
+    [[ ! -s $TEST_APT_LOG ]] || fail 'pacote corrompido chegou ao APT'
+    [[ $(cat "$JUNO_HOME/.local/bin/code") == 'launcher anterior' ]] || fail 'download corrompido alterou launcher'
+}
+
+test_debian_apt_failure() {
+    debian_fixture
+    TEST_APT_FAIL=1
+    _txn_mkdir_home '.local/bin'
+    printf 'launcher anterior\n' > "$JUNO_HOME/.local/bin/code"
+    if juno_install_vscode; then fail 'falha APT ignorada'; fi
+    [[ $(cat "$JUNO_HOME/.local/bin/code") == 'launcher anterior' ]] || fail 'falha APT alterou launcher'
+    expect_absent "$JUNO_STATE/apps/vscode.json"
+}
+
+test_debian_unmanaged_native_conflict() {
+    debian_fixture
+    mkdir -- "$TEST_NATIVE_ROOT"
+    printf 'preservar\n' > "$TEST_NATIVE_ROOT/sentinel"
+    if juno_install_vscode; then fail 'diretório nativo sem pacote Debian foi sobrescrito'; fi
+    [[ $(cat "$TEST_NATIVE_ROOT/sentinel") == preservar ]] || fail 'diretório nativo divergente alterado'
+    [[ ! -s $TEST_APT_LOG && $(wc -l < "$TEST_CURL_LOG") == 1 ]] || fail 'conflito nativo executou instalação'
+}
+
+test_debian_existing_oss_conflict() {
+    debian_fixture
+    juno_install_vscode
+    jq '.nameLong="Code - OSS"' "$TEST_NATIVE_ROOT/resources/app/product.json" > "$CASE_ROOT/changed.json"
+    mv -- "$CASE_ROOT/changed.json" "$TEST_NATIVE_ROOT/resources/app/product.json"
+    if juno_install_vscode; then fail 'Code OSS nativo foi aceito como Microsoft'; fi
+    [[ $(grep -c '^install ' "$TEST_APT_LOG") == 1 ]] || fail 'conflito Code OSS executou APT'
+}
+
+test_debian_global_launcher_preserved() {
+    local kind
+    for kind in file symlink; do
+        debian_fixture
+        if [[ $kind == symlink ]]; then
+            if ((!TEST_NATIVE_LINKS)); then
+                printf 'IGNORADO: launcher global por symlink exige links nativos.\n'
+                continue
+            fi
+            printf 'alvo global preservado\n' > "$CASE_ROOT/global-source"
+            ln -s -- "$CASE_ROOT/global-source" "$TEST_GLOBAL_LAUNCHER"
+        else
+            printf 'launcher global preservado\n' > "$TEST_GLOBAL_LAUNCHER"
+        fi
+        if juno_install_vscode; then fail "launcher global $kind existente foi aceito pelo APT"; fi
+        [[ -s $TEST_GLOBAL_LAUNCHER ]] || fail 'launcher global perdido'
+        [[ ! -s $TEST_APT_LOG && $(wc -l < "$TEST_CURL_LOG") == 1 ]] || fail 'conflito global provocou download/APT'
+        expect_absent "$JUNO_HOME/.local/bin/code"
+    done
+}
+
 count=0
 for test in test_install test_idempotence test_update_retains_previous test_corrupt_preserves_current \
     test_failed_binary test_offline test_untrusted_metadata test_reject_oss test_reject_version \
     test_unsafe_archives test_existing_launchers_preserved test_existing_icon_preserved \
     test_icon_conflict_preserves_current test_icon_links_rejected test_icon_external_ancestor \
     test_wrapper_quotes test_existing_manifest_corrupt \
-    test_lock_required test_external_ancestor; do
+    test_lock_required test_external_ancestor test_debian_install test_debian_idempotence test_debian_legacy_launcher_preserved \
+    test_debian_newer_preserved test_debian_invalid_identity test_debian_corrupt_preserves_launchers \
+    test_debian_apt_failure test_debian_unmanaged_native_conflict test_debian_existing_oss_conflict \
+    test_debian_global_launcher_preserved; do
     ("$test")
     count=$((count + 1))
     printf 'OK: %s\n' "$test"

@@ -48,17 +48,23 @@ case "$1" in
         juno_preflight_install() { printf 'offline simulado\n' >&2; return 23; }
         juno_main
         ;;
-    dry)
+    dry|dry-zorin)
+        [[ $1 != dry-zorin ]] || JUNO_PLATFORM=zorin
         juno_preflight_install() { [[ $1 == readonly ]]; }
         juno_main --dry-run
         ;;
-    optional-spotify)
+    optional-spotify|optional-zorin)
+        [[ $1 != optional-zorin ]] || JUNO_PLATFORM=zorin
         # Exercise the real orchestration/traps and transaction after Flatpak
         # refuses its runtime. Only external services, downloads and schemas
         # are simulated; the dotfile backup, apply and finalization are real.
         juno_define_targets() {
             JUNO_TARGETS=(.bashrc)
             JUNO_SOURCES=("$TEST_ROOT/new-bashrc")
+            if [[ ${JUNO_PLATFORM:-arch} == zorin ]]; then
+                JUNO_TARGETS+=(.local/share/fonts/juno)
+                JUNO_SOURCES+=("$ROOT/assets/fonts/spacemono")
+            fi
         }
         printf 'managed bashrc\n' > "$TEST_ROOT/new-bashrc"
         printf 'original\n' > "$TEST_ROOT/mock-settings"
@@ -76,6 +82,8 @@ case "$1" in
         }
         juno_install_vscode() { printf 'vscode\n' >> "$TEST_ROOT/application-calls"; }
         juno_install_posh() { printf 'posh\n' >> "$TEST_ROOT/application-calls"; }
+        juno_install_zorin_app() { return 1; }
+        fc-scan() { printf 'JetBrainsMono Nerd Font Mono\n'; }
         juno_gsettings_snapshot() { cp -- "$TEST_ROOT/mock-settings" "$1"; }
         juno_gsettings_desired() { printf 'Roboto\n' > "$1"; }
         juno_gsettings_validate() { [[ -f $1 ]]; }
@@ -94,6 +102,11 @@ mkdir "$TEST_ROOT/home"
 bash "$TEST_ROOT/harness.sh" dry > "$TEST_ROOT/dry.log"
 [[ -z $(find "$TEST_ROOT/home" -mindepth 1 -print -quit) ]] || { printf 'Simulação gravou arquivos.\n' >&2; exit 1; }
 printf 'OK: dry-run integrado sem gravações\n'
+bash "$TEST_ROOT/harness.sh" dry-zorin > "$TEST_ROOT/dry-zorin.log"
+[[ -z $(find "$TEST_ROOT/home" -mindepth 1 -print -quit) ]]
+grep -q 'apt-get install' "$TEST_ROOT/dry-zorin.log"
+if grep -q 'pacman' "$TEST_ROOT/dry-zorin.log"; then exit 1; fi
+printf 'OK: dry-run Zorin integrado sem gravações ou comandos Arch\n'
 bash "$TEST_ROOT/harness.sh" pending > "$TEST_ROOT/pending.log"
 [[ -f "$TEST_ROOT/home/.local/state/juno-desktop/pending.tsv" ]]
 if bash "$TEST_ROOT/harness.sh" offline > "$TEST_ROOT/offline.log" 2>&1; then
@@ -119,4 +132,16 @@ if grep -q 'Operação interrompida' "$TEST_ROOT/optional-spotify.log"; then
     exit 1
 fi
 printf 'OK: falha opcional do Spotify permite aplicar e finalizar arquivos e preferências\n'
-printf '3 cenários de integração passaram.\n'
+: > "$TEST_ROOT/application-calls"
+bash "$TEST_ROOT/harness.sh" optional-zorin > "$TEST_ROOT/optional-zorin.log" 2>&1
+[[ $(cat "$TEST_ROOT/application-calls") == $'vscode\nposh\ngdm' ]]
+[[ ! -f "$TEST_ROOT/home/.local/state/juno-desktop/pending.tsv" ]]
+for style in Regular Bold Italic BoldItalic; do
+    cmp -- "$ROOT/assets/fonts/jetbrainsmono-nerd/JetBrainsMonoNerdFontMono-$style.ttf" \
+        "$TEST_ROOT/home/.local/share/fonts/juno/JetBrainsMonoNerdFontMono-$style.ttf"
+done
+grep -q 'Ambiente Juno configurado com sucesso' "$TEST_ROOT/optional-zorin.log"
+grep -q 'Steam não foi instalado' "$TEST_ROOT/optional-zorin.log"
+grep -q 'Discord não foi instalado' "$TEST_ROOT/optional-zorin.log"
+printf 'OK: perfil Zorin aplica fontes e arquivos apesar da recusa dos aplicativos opcionais\n'
+printf '5 cenários de integração passaram.\n'

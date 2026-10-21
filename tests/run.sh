@@ -3,6 +3,9 @@ set -euo pipefail
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 cd -- "$ROOT"
 export PYTHONDONTWRITEBYTECODE=1
+# Native checks export the host platform. Unit fixtures choose their own
+# platform explicitly; legacy regression fixtures start from the Arch contract.
+unset JUNO_PLATFORM JUNO_ZORIN_VERSION JUNO_UBUNTU_VERSION
 while IFS= read -r -d '' file; do
     bash -n "$file"
 done < <(find install.sh lib tests config/juno config/juno-gnome -type f \( -name '*.sh' -o -path '*/bin/*' \) -print0)
@@ -19,6 +22,8 @@ python3 tools/generate_icons.py --check
 python3 tools/check_icons.py
 python3 -m unittest discover -s tests -p '*_test.py'
 bash tests/installer.sh
+bash tests/platform.sh
+bash tests/fonts.sh
 bash tests/integration.sh
 bash tests/transaction.sh
 bash tests/transaction_gnome.sh
@@ -32,4 +37,4 @@ bash tests/multilib.sh
 bash tests/applications.sh
 bash tests/vscode.sh
 bash tests/wallpaper.sh
-printf 'Verificações locais concluídas. A sessão gráfica exige aceitação nativa no Arch.\n'
+printf 'Verificações locais concluídas. A sessão gráfica exige aceitação nativa em cada distribuição alvo.\n'

@@ -119,7 +119,7 @@ class GioBackend:
             gi.require_version("Gio", "2.0")
             from gi.repository import Gio, GLib
         except (ImportError, ValueError) as exc:
-            raise SettingsError("PyGObject/Gio ausente; instale python-gobject") from exc
+            raise SettingsError("PyGObject/Gio ausente; instale python-gobject (Arch) ou python3-gi (Zorin)") from exc
         self.Gio, self.GLib = Gio, GLib
         self.errors = []
         # dconf reports some read/write failures as GLib warnings instead of
