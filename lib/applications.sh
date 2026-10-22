@@ -100,7 +100,11 @@ juno_applications_plan() {
     juno_log 'Spotify (opcional): Flatpak do usuário, com binário upstream e empacotamento comunitário do Flathub. Recusa ou falha não interrompe a configuração do desktop.'
     if [[ ${JUNO_PLATFORM:-arch} == zorin ]]; then
         juno_log 'Visual Studio Code: pacote .deb estável original da Microsoft, versão/arquitetura/checksum verificados; sem adicionar repositório Microsoft.'
-        juno_log 'Desenvolvimento: dependências dos repositórios APT existentes, sem substituir versões já instaladas.'
+        if [[ ${JUNO_WITH_DEV_TOOLS:-0} == 1 ]]; then
+            juno_log 'Desenvolvimento: compiladores e ferramentas adicionais dos repositórios APT existentes, sem substituir versões já instaladas.'
+        else
+            juno_log 'Desenvolvimento essencial: VS Code, Git, Python e Node.js. Use --with-dev-tools para instalar compiladores e ferramentas adicionais.'
+        fi
     else
         juno_log 'Visual Studio Code: binário estável original da Microsoft, checksum verificado, instalado para este usuário.'
         juno_log 'Desenvolvimento: Python/pip/uv, Node.js/npm, C/C++ (GCC/Clang), Go, Rust/Cargo, Git/GitHub CLI, CMake/Ninja, GDB/LLDB, SQLite, ripgrep/fd, ShellCheck/shfmt.'

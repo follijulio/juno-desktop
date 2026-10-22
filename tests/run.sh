@@ -5,7 +5,7 @@ cd -- "$ROOT"
 export PYTHONDONTWRITEBYTECODE=1
 # Native checks export the host platform. Unit fixtures choose their own
 # platform explicitly; legacy regression fixtures start from the Arch contract.
-unset JUNO_PLATFORM JUNO_ZORIN_VERSION JUNO_UBUNTU_VERSION
+unset JUNO_PLATFORM JUNO_ZORIN_VERSION JUNO_UBUNTU_VERSION JUNO_WITH_DEV_TOOLS
 while IFS= read -r -d '' file; do
     bash -n "$file"
 done < <(find install.sh lib tests config/juno config/juno-gnome -type f \( -name '*.sh' -o -path '*/bin/*' \) -print0)

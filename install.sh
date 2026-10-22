@@ -13,33 +13,46 @@ usage() {
     cat <<'HELP'
 Juno Desktop — instalador para Arch Linux e Zorin OS 18 (GNOME), x86_64
 
-Uso: bash install.sh [opção]
+Uso: bash install.sh [opções]
   --dry-run         Exibe verificações e alterações previstas, sem gravar arquivos.
   --list-backups    Lista os backups deste usuário.
   --rollback ID     Restaura um backup e preserva o estado atual em outro backup.
+  --with-dev-tools  No Zorin, inclui compiladores e ferramentas de desenvolvimento.
   --help            Exibe esta ajuda.
 
 Sem opções: instala o perfil Juno com pacman (Arch) ou APT (Zorin).
+No Zorin, usa o conjunto essencial; --with-dev-tools pode acompanhar --dry-run.
 No Arch, a instalação inclui a atualização completa do sistema. Execute como usuário comum,
 após sair da sessão gráfica e entrar em um terminal de texto (TTY).
 HELP
 }
 
 juno_main() {
-    local operation=install backup_id='' target comparison_status
-    case ${1:-} in
-        '') ;;
-        --help|-h) usage; exit 0 ;;
-        --dry-run) operation=dry-run ;;
-        --list-backups) operation=list ;;
-        --rollback)
-            [[ $# -eq 2 ]] || { usage >&2; exit 2; }
-            operation=rollback
-            backup_id=$2
-            ;;
-        *) usage >&2; exit 2 ;;
-    esac
-    if [[ $operation != rollback && $# -gt 1 ]]; then
+    local operation=install backup_id='' target comparison_status selected_operation=0
+    JUNO_WITH_DEV_TOOLS=0
+    while (( $# )); do
+        case $1 in
+            --help|-h) [[ $# -eq 1 && $selected_operation == 0 && $JUNO_WITH_DEV_TOOLS == 0 ]] || { usage >&2; exit 2; }; usage; exit 0 ;;
+            --with-dev-tools)
+                [[ $JUNO_WITH_DEV_TOOLS == 0 ]] || { usage >&2; exit 2; }
+                JUNO_WITH_DEV_TOOLS=1
+                shift
+                ;;
+            --dry-run|--list-backups|--rollback)
+                [[ $selected_operation == 0 ]] || { usage >&2; exit 2; }
+                selected_operation=1
+                case $1 in
+                    --dry-run) operation=dry-run; shift ;;
+                    --list-backups) operation=list; shift ;;
+                    --rollback)
+                        [[ $# -ge 2 && $2 != --* ]] || { usage >&2; exit 2; }
+                        operation=rollback; backup_id=$2; shift 2 ;;
+                esac
+                ;;
+            *) usage >&2; exit 2 ;;
+        esac
+    done
+    if [[ ( $operation == list || $operation == rollback ) && $JUNO_WITH_DEV_TOOLS == 1 ]]; then
         usage >&2
         exit 2
     fi
@@ -82,7 +95,7 @@ juno_main() {
     if [[ $operation == rollback ]]; then
         txn_restore "$backup_id"
         if command -v fc-cache >/dev/null 2>&1; then
-            fc-cache -fv
+            juno_refresh_font_cache
         fi
         txn_finalize
         juno_log 'Backup restaurado. Entre novamente na sessão gráfica para aplicar as alterações.'
@@ -112,7 +125,7 @@ juno_main() {
     if txn_changed; then
         txn_backup
         txn_apply
-        fc-cache -fv
+        juno_refresh_font_cache
         juno_validate_installed_fonts
         txn_finalize
     else

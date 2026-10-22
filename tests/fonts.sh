@@ -39,3 +39,17 @@ fc-scan() { printf '%s\n' 'Wrong font'; }
 if (juno_stage_fonts) >"$TEST_ROOT/error" 2>&1; then exit 1; fi
 grep -q 'Família incorreta' "$TEST_ROOT/error"
 printf 'OK: família inesperada recusada.\n'
+
+JUNO_HOME="$TEST_ROOT/cache home"
+font_dir="$JUNO_HOME/.local/share/fonts/juno"
+mkdir -p -- "$font_dir"
+cache_calls=0
+cache_args=()
+fc-cache() { cache_calls=$((cache_calls + 1)); cache_args=("$@"); }
+juno_refresh_font_cache
+[[ $cache_calls == 1 && ${#cache_args[@]} == 3 && ${cache_args[0]} == -f && ${cache_args[1]} == -- && ${cache_args[2]} == "$font_dir" ]]
+printf 'OK: reconstrução forçada limitada às fontes gerenciadas, preservando caches do sistema.\n'
+rmdir -- "$font_dir"
+juno_refresh_font_cache
+[[ $cache_calls == 2 && ${#cache_args[@]} == 0 ]]
+printf 'OK: ausência do diretório após rollback usa descoberta incremental.\n'

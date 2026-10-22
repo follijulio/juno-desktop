@@ -12,11 +12,13 @@ _juno_gsettings_run() (
     juno_require python3
     [[ -f $helper && ! -L $helper ]] || { juno_warn 'Helper GNOME ausente ou inválido.'; return 2; }
     local -a context=(env -u GSETTINGS_SCHEMA_DIR "GSETTINGS_BACKEND=dconf" "HOME=$JUNO_HOME")
+    local -a profile_flags=()
+    [[ ${JUNO_PLATFORM:-arch} != zorin ]] || profile_flags+=(--performance)
     # Only static planning avoids dconf entirely. Even reads can create dconf
     # shared-memory files, so backend operations need a safe runtime directory.
     case $operation in
         desired)
-            if "${context[@]}" python3 "$helper" "$operation" --home "$JUNO_HOME" "$@"; then return 0; else return $?; fi
+            if "${context[@]}" python3 "$helper" "$operation" --home "$JUNO_HOME" "${profile_flags[@]}" "$@"; then return 0; else return $?; fi
             ;;
     esac
     (( EUID != 0 )) || { juno_warn 'GSettings deve ser aplicado como usuário comum.'; return 2; }
@@ -25,7 +27,7 @@ _juno_gsettings_run() (
         user_bus="$runtime/bus"
         if [[ -S $user_bus && $(stat -c %u -- "$user_bus") == "$(id -u)" ]]; then
             if "${context[@]}" "XDG_RUNTIME_DIR=$runtime" "DBUS_SESSION_BUS_ADDRESS=unix:path=$user_bus" \
-                python3 "$helper" "$operation" --home "$JUNO_HOME" "$@"; then return 0; else return $?; fi
+                python3 "$helper" "$operation" --home "$JUNO_HOME" "${profile_flags[@]}" "$@"; then return 0; else return $?; fi
         fi
     else
         # Text/SSH sessions without pam_systemd get a private temporary runtime.
@@ -37,7 +39,7 @@ _juno_gsettings_run() (
     fi
     juno_require dbus-run-session
     if "${context[@]}" "XDG_RUNTIME_DIR=$runtime" dbus-run-session -- \
-        python3 "$helper" "$operation" --home "$JUNO_HOME" "$@"; then status=0; else status=$?; fi
+        python3 "$helper" "$operation" --home "$JUNO_HOME" "${profile_flags[@]}" "$@"; then status=0; else status=$?; fi
     return "$status"
 )
 
@@ -74,6 +76,7 @@ juno_gnome_plan() {
     juno_log 'GSettings: validação de schemas e permissões após instalar PyGObject; backup por chave, incluindo valores ausentes.'
     if [[ ${JUNO_PLATFORM:-arch} == zorin ]]; then
         juno_log 'Zorin: preservar a sessão e as extensões fornecidas pela distribuição, o áudio e o GDM existentes.'
+        juno_log 'Zorin: manter animações de janelas e painel ativadas, preservando o visual; valor anterior incluído no backup por chave.'
     fi
 }
 

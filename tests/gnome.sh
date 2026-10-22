@@ -161,4 +161,28 @@ for package in hyprland waybar rofi mako hyprlock hypridle xdg-desktop-portal-hy
     [[ " ${JUNO_PACKAGES[*]} " != *" $package "* ]]
 done
 ok 'pacotes GNOME e JetBrains substituem dependências específicas Hyprland'
+
+# Desired-profile planning must choose the platform scope without touching
+# dconf, even when no graphical session or safe runtime directory exists.
+JUNO_ROOT=$ROOT
+JUNO_HOME="$TEST_ROOT/planning-home"
+mkdir "$JUNO_HOME"
+JUNO_PLATFORM=zorin
+expect_status 0 juno_gsettings_desired "$TEST_ROOT/zorin.json"
+JUNO_PLATFORM=arch
+expect_status 0 juno_gsettings_desired "$TEST_ROOT/arch.json"
+python3 - "$TEST_ROOT/zorin.json" "$TEST_ROOT/arch.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+zorin, arch = [json.loads(Path(name).read_text(encoding="utf-8")) for name in sys.argv[1:]]
+assert zorin["version"] == 3 and len(zorin["entries"]) == 8
+assert zorin["entries"][:-1] == arch["entries"]
+assert zorin["entries"][-1]["key"] == "enable-animations"
+assert zorin["entries"][-1]["type"] == "b" and zorin["entries"][-1]["value"] == "true"
+assert arch["version"] == 2 and len(arch["entries"]) == 7
+PY
+[[ -z $(find "$JUNO_HOME" -mindepth 1 -print -quit) ]]
+unset JUNO_PLATFORM
+ok 'planejamento Zorin inclui animações; Arch mantém sete chaves sem acessar dconf'
 printf '%s cenários GNOME passaram (systemd/logind simulados).\n' "$passed"

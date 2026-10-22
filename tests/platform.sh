@@ -19,6 +19,7 @@ source "$ROOT/lib/gnome.sh"
 TEST_ROOT=$(mktemp -d)
 trap 'rm -rf -- "$TEST_ROOT"' EXIT
 CALLS="$TEST_ROOT/calls"
+DPKG_CALLS="$TEST_ROOT/dpkg-calls"
 MISSING="$TEST_ROOT/missing"
 passed=0
 ok() { passed=$((passed + 1)); printf 'OK: %s\n' "$1"; }
@@ -36,6 +37,10 @@ juno_detect_platform "$TEST_ROOT/os-release"
 [[ $(juno_gdm_service) == gdm.service ]]
 juno_set_packages
 [[ " ${JUNO_PACKAGES[*]} " == *' gdm '* && " ${JUNO_PACKAGES[*]} " == *' ttf-jetbrains-mono-nerd '* ]]
+JUNO_WITH_DEV_TOOLS=1
+juno_set_packages
+[[ ${JUNO_PACKAGES[*]} == "${JUNO_ARCH_PACKAGES[*]}" ]]
+JUNO_WITH_DEV_TOOLS=0
 ok 'Arch preserva os pacotes e o serviço GDM existentes'
 
 fixture 'ID="zorin"' "VERSION_ID='18.1'" 'VERSION_CODENAME=noble' 'UBUNTU_CODENAME="noble"'
@@ -45,10 +50,26 @@ juno_detect_platform "$TEST_ROOT/os-release"
 juno_set_packages
 [[ " ${JUNO_PACKAGES[*]} " == *' fonts-jetbrains-mono '* && " ${JUNO_PACKAGES[*]} " == *' python3-gi '* ]]
 for package in gdm gdm3 gnome-shell gnome-session pipewire pipewire-pulse pulseaudio \
-    steam discord firefox ttf-jetbrains-mono-nerd uv; do
+    steam discord firefox ttf-jetbrains-mono-nerd uv qt6-wayland "${JUNO_ZORIN_DEV_PACKAGES[@]}"; do
     [[ " ${JUNO_PACKAGES[*]} " != *" $package "* ]]
 done
 ok 'Zorin 18.1 usa nomes APT sem substituir sessão, login, navegador ou áudio'
+
+for package in git python3 nodejs xdg-utils; do
+    [[ " ${JUNO_PACKAGES[*]} " == *" $package "* ]]
+done
+JUNO_WITH_DEV_TOOLS=1
+juno_set_packages
+[[ ${#JUNO_PACKAGES[@]} == $((${#JUNO_ZORIN_PACKAGES[@]} + ${#JUNO_ZORIN_DEV_PACKAGES[@]})) ]]
+for package in "${JUNO_ZORIN_DEV_PACKAGES[@]}"; do
+    [[ " ${JUNO_PACKAGES[*]} " == *" $package "* ]]
+done
+JUNO_WITH_DEV_TOOLS=invalid
+expect_failure juno_set_packages
+JUNO_WITH_DEV_TOOLS=0
+juno_set_packages
+[[ ${JUNO_PACKAGES[*]} == "${JUNO_ZORIN_PACKAGES[*]}" ]]
+ok 'Zorin mantém integração essencial e só seleciona compiladores e ferramentas com opção explícita'
 
 fixture 'ID=zorin' 'VERSION_ID=18' 'UBUNTU_CODENAME=noble'
 juno_detect_platform "$TEST_ROOT/os-release"
@@ -86,22 +107,32 @@ sudo() {
     "$@"
 }
 dpkg-query() {
-    if [[ $# == 2 && $1 == -W ]]; then
-        printf 'kitty\t0\tinstalled\n'
-        return 0
-    fi
-    [[ $# == 4 && $1 == -W && $2 == '-f=${Architecture}\t${Status}\n' && $3 == -- ]] || return 99
-    if grep -Fxq -- "$4" "$MISSING"; then return 1; fi
-    printf 'amd64\tinstall ok installed\n'
+    printf '%s\n' "$*" >> "$DPKG_CALLS"
+    [[ $# == 2 && $1 == -W ]] || return 99
+    case $2 in
+        '-f=${binary:Package}\t${Architecture}\t${Status}\n')
+            [[ $DPKG_INVENTORY_FAIL == no ]] || return 2
+            local package missing_packages
+            missing_packages=$(< "$MISSING")
+            for package in "${JUNO_PACKAGES[@]}" gnome-shell gnome-session-bin gsettings-desktop-schemas gdm3; do
+                [[ $'\n'$missing_packages$'\n' == *$'\n'"$package"$'\n'* ]] && continue
+                printf '%s\tamd64\tinstall ok installed\n' "$package"
+            done
+            ;;
+        '-f=${binary:Package}\t${Version}\t${db:Status-Status}\n')
+            printf 'kitty\t0\tinstalled\n'
+            ;;
+        *) return 99 ;;
+    esac
 }
 apt-get() {
     printf 'apt-get %s\n' "$*" >> "$CALLS"
     case $1 in
         update) [[ $APT_UPDATE_FAIL == no ]] ;;
         install)
-            [[ $2 == --no-upgrade && $3 == --no-remove && $4 == -- ]] || return 99
+            [[ $2 == --no-install-recommends && $3 == --no-upgrade && $4 == --no-remove && $5 == -- ]] || return 99
             [[ $APT_INSTALL_FAIL == no ]] || return 28
-            : > "$MISSING"
+            [[ $APT_LEAVE_MISSING == yes ]] || : > "$MISSING"
             ;;
         *) return 99 ;;
     esac
@@ -121,46 +152,80 @@ reset_packages() {
     mkdir -p -- "$JUNO_STATE"
     chmod 700 -- "$JUNO_STATE"
     : > "$CALLS"
+    : > "$DPKG_CALLS"
     : > "$MISSING"
     APT_UPDATE_FAIL=no; APT_INSTALL_FAIL=no; APT_CANDIDATE=yes
+    DPKG_INVENTORY_FAIL=no; APT_LEAVE_MISSING=no
 }
 
 reset_packages
 juno_install_packages > "$TEST_ROOT/output"
 [[ ! -s $CALLS && ! -e $JUNO_STATE/packages ]]
-ok 'dependências presentes não provocam sudo, atualização de índices ou reinstalação'
+[[ $(wc -l < "$DPKG_CALLS") == 1 ]]
+ok 'dependências presentes usam uma consulta DPKG sem sudo, índices ou reinstalação'
 
 (
-    dpkg-query() { printf 'i386\tinstall ok installed\n'; }
-    if _juno_dpkg_installed kitty; then exit 1; fi
-    dpkg-query() { printf 'i386\tinstall ok installed\namd64\tdeinstall ok config-files\n'; }
-    if _juno_dpkg_installed kitty; then exit 1; fi
-    dpkg-query() { printf 'i386\tinstall ok installed\namd64\tinstall ok installed\n'; }
-    _juno_dpkg_installed kitty
-    dpkg-query() { printf 'all\tinstall ok installed\n'; }
-    _juno_dpkg_installed fonts-roboto
+    declare -A inventory=([stale]=1)
+    dpkg-query() {
+        printf '%s\n' $'kitty:i386\ti386\tinstall ok installed' \
+            $'kitty:amd64\tamd64\tdeinstall ok config-files' \
+            $'fonts-roboto\tall\tinstall ok installed' \
+            $'libsecret-1-0:i386\ti386\tinstall ok installed' \
+            $'libsecret-1-0:amd64\tamd64\tinstall ok installed' \
+            $'curl\tamd64\tinstall ok unpacked' \
+            $'jq\tamd64\thold ok installed' \
+            $'mpv\tamd64\tinstall reinstreq installed'
+    }
+    _juno_dpkg_inventory inventory
+    [[ -z ${inventory[kitty]:-} && -z ${inventory[stale]:-} && -z ${inventory[curl]:-} && -z ${inventory[mpv]:-} ]]
+    [[ ${inventory[fonts-roboto]:-} == 1 && ${inventory[libsecret-1-0]:-} == 1 && ${inventory[jq]:-} == 1 ]]
 )
-ok 'inventário diferencia dependências nativas, pacotes independentes e bibliotecas somente i386'
+ok 'inventário em lote aceita retidos instalados e descarta cache antigo, estados incompletos e i386'
+
+reset_packages
+DPKG_INVENTORY_FAIL=yes
+expect_failure juno_install_packages
+[[ ! -s $CALLS && ! -e $JUNO_STATE/packages && $(wc -l < "$DPKG_CALLS") == 1 ]]
+grep -q 'inventário de pacotes DPKG' "$TEST_ROOT/error.log"
+ok 'falha de inventário interrompe antes de sudo sem confundir todos os pacotes com ausentes'
 
 reset_packages
 printf 'kitty\nfonts-jetbrains-mono\n' > "$MISSING"
 juno_install_packages > "$TEST_ROOT/output"
 grep -Fx 'apt-get update' "$CALLS" >/dev/null
-grep -Fx 'apt-get install --no-upgrade --no-remove -- kitty fonts-jetbrains-mono' "$CALLS" >/dev/null
+grep -Fx 'apt-get install --no-install-recommends --no-upgrade --no-remove -- kitty fonts-jetbrains-mono' "$CALLS" >/dev/null
+[[ $(wc -l < "$DPKG_CALLS") == 4 ]]
 [[ $(find "$JUNO_STATE/packages" -name '*.before.txt' | wc -l) == 1 ]]
 [[ $(find "$JUNO_STATE/packages" -name '*.after.txt' | wc -l) == 1 ]]
-ok 'APT recebe somente pacotes ausentes, sem upgrades explícitos ou remoções, e guarda inventários'
+ok 'APT recebe só ausentes sem recomendados, upgrades ou remoções; usa inventário em lote antes e depois'
+
+reset_packages
+printf 'kitty\n' > "$MISSING"
+APT_LEAVE_MISSING=yes
+expect_failure juno_install_packages
+[[ $(wc -l < "$DPKG_CALLS") == 4 && $(find "$JUNO_STATE/packages" -name '*.after.txt' | wc -l) == 1 ]]
+grep -q 'ausente após a instalação: kitty' "$TEST_ROOT/error.log"
+ok 'validação posterior relê DPKG e rejeita dependência ainda ausente após sucesso APT'
+
+reset_packages
+juno_install_packages > "$TEST_ROOT/output"
+printf 'kitty\n' > "$MISSING"
+juno_install_packages >> "$TEST_ROOT/output"
+[[ $(wc -l < "$DPKG_CALLS") == 5 ]]
+grep -Fx 'apt-get install --no-install-recommends --no-upgrade --no-remove -- kitty' "$CALLS" >/dev/null
+ok 'nova operação consulta inventário atual sem reutilizar o cache da execução anterior'
 
 reset_packages
 printf 'xdg-desktop-portal-gnome\n' > "$MISSING"
 juno_install_packages > "$TEST_ROOT/output"
-grep -Fx 'apt-get install --no-upgrade --no-remove -- xdg-desktop-portal-gnome' "$CALLS" >/dev/null
+grep -Fx 'apt-get install --no-install-recommends --no-upgrade --no-remove -- xdg-desktop-portal-gnome' "$CALLS" >/dev/null
 ok 'portal GNOME ausente é complementado sem rejeitar uma sessão GNOME existente'
 
 reset_packages
 printf 'gnome-shell\n' > "$MISSING"
 expect_failure juno_install_packages
 [[ ! -s $CALLS && ! -e $JUNO_STATE/packages ]]
+[[ $(wc -l < "$DPKG_CALLS") == 1 ]]
 grep -q 'Lite/XFCE' "$TEST_ROOT/error.log"
 ok 'ausência do GNOME rejeita Lite antes de sudo ou criação de estado de pacotes'
 
@@ -192,6 +257,15 @@ juno_packages_plan > "$TEST_ROOT/plan"
 juno_multilib_plan >> "$TEST_ROOT/plan"
 juno_enable_multilib >> "$TEST_ROOT/plan"
 [[ ! -s $CALLS && ! -e $JUNO_STATE/packages ]]
+[[ ! -s $DPKG_CALLS ]]
+grep -q 'apt-get install --no-install-recommends --no-upgrade --no-remove --' "$TEST_ROOT/plan"
+if grep -q 'golang-go\|cargo\|build-essential' "$TEST_ROOT/plan"; then exit 1; fi
+JUNO_WITH_DEV_TOOLS=1
+juno_packages_plan > "$TEST_ROOT/plan-dev"
+grep -q 'golang-go' "$TEST_ROOT/plan-dev"
+grep -q 'cargo' "$TEST_ROOT/plan-dev"
+[[ ! -s $CALLS && ! -s $DPKG_CALLS && ! -e $JUNO_STATE/packages ]]
+JUNO_WITH_DEV_TOOLS=0
 if grep -q 'pacman\|add-architecture' "$TEST_ROOT/plan"; then exit 1; fi
 ok 'plano Zorin e multilib não executam comandos privilegiados nem alteram arquiteturas'
 

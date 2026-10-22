@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 # Zorin has no packaged JetBrainsMono Nerd Font Mono; use verified upstream TTFs.
 
+juno_refresh_font_cache() {
+    local fonts="$JUNO_HOME/.local/share/fonts/juno"
+    if [[ -d $fonts && ! -L $fonts ]]; then
+        # Directory replacement can preserve old timestamps. Force only the
+        # managed directory, retaining valid caches for all system fonts.
+        fc-cache -f -- "$fonts"
+    else
+        # A rollback can remove this directory or restore an original symlink.
+        # Let Fontconfig discover that state without a forced global rebuild.
+        fc-cache
+    fi
+}
+
 juno_stage_fonts() {
     [[ ${JUNO_PLATFORM:-arch} == zorin ]] || return 0
     local source="$JUNO_ROOT/assets/fonts/jetbrainsmono-nerd" stage file family
