@@ -145,6 +145,7 @@ printf 'OK: atualização Zorin recusa Flathub inseguro antes do download\n'
 
 REMOTE_URL=https://dl.flathub.org/repo/
 JUNO_PLATFORM=zorin
+juno_configure_zorin_browser() { :; }
 spotify() { :; }
 : > "$CALLS"
 juno_install_spotify >/dev/null

@@ -2,7 +2,7 @@
 Name=Juno
 Comment=Original cream illustrations on colorful rounded tiles
 Inherits=Adwaita,hicolor
-Directories=scalable/apps
+Directories=scalable/apps,scalable/places,scalable/categories,scalable/actions
 
 [scalable/apps]
 Size=64
@@ -10,3 +10,24 @@ Type=Scalable
 MinSize=16
 MaxSize=512
 Context=Applications
+
+[scalable/places]
+Size=64
+Type=Scalable
+MinSize=16
+MaxSize=512
+Context=Places
+
+[scalable/categories]
+Size=64
+Type=Scalable
+MinSize=16
+MaxSize=512
+Context=Categories
+
+[scalable/actions]
+Size=64
+Type=Scalable
+MinSize=16
+MaxSize=512
+Context=Actions

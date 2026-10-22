@@ -1,6 +1,6 @@
 # Identidade visual — Juno Desktop
 
-O Juno aplica a referência editorial Netuno ao wallpaper original, terminal, prompt e configurações tipográficas. O GNOME usa seus componentes nativos, preservando tema de janelas e animações escolhidos pela conta. Os ícones dos aplicativos têm uma linguagem própria baseada na referência de cartões coloridos e ilustrações com contorno.
+O Juno aplica a referência editorial Netuno ao wallpaper original, terminal, prompt e configurações tipográficas. O GNOME usa seus componentes nativos, com tema escuro e animações ativadas no perfil inicial, mantendo backup dos valores anteriores. Os ícones dos aplicativos têm uma linguagem própria baseada na referência de cartões coloridos e ilustrações com contorno.
 
 | Cor | sRGB | Aplicação nos recursos Juno |
 | --- | --- | --- |
@@ -24,6 +24,8 @@ A galeria fotográfica e ilustrada preserva pixels e cores originais. Ghibli · 
 
 Painel, notificações, bloqueio e aplicativos GNOME não recebem CSS global ou extensões de tema. Recursos históricos Hyprland não são aplicados pela instalação GNOME.
 
-O tema de ícones **Juno** usa cartões de cantos arredondados, glifos creme levemente inclinados, contornos escuros e sombras sólidas pequenas. Suas cores azul, verde, laranja, vermelho, roxo e turquesa distinguem aplicativos; a paleta e a geometria editorial acima continuam restritas ao wallpaper, terminal e prompt. São 49 desenhos SVG originais, legíveis em 32 e 64 px, sem fontes, imagens externas ou filtros. Nomes dos aplicativos identificam os desenhos; a arte local é CC0. Ações e estados do sistema herdam ícones nativos.
+O tema de ícones **Juno** usa cartões arredondados coloridos, desenhos creme, contornos escuros e pequenas sombras. São 105 desenhos e variantes e 227 nomes SVG, incluindo aplicativos, pastas, categorias e ações. Pastas especiais têm emblemas próprios. As variantes simbólicas preservam os traços sem fundo opaco, permitindo ao GNOME manter contraste em menus claros ou escuros. SVGs locais CC0 não usam fontes, recursos externos ou filtros; nomes não cobertos herdam Adwaita/hicolor.
 
 `tools/check_brand.py` confere configurações ativas Juno/Kitty, cores dos recursos editoriais, fontes autorizadas e integridade dos arquivos vendorizados. Configurações Hyprland históricas não fazem parte dessa validação da distribuição GNOME.
+
+A camada `Juno-Auto` aplica aos lançadores não cobertos a mesma paleta da base, símbolo creme/tinta e cartão colorido com borda escura. O símbolo original é mantido na composição; não se usa geração por IA nem download de temas. Os desenhos curados continuam prioritários. Pastas e ícones simbólicos usam diretamente as variantes vetoriais da base Juno.

@@ -10,13 +10,13 @@ JUNO_ARCH_PACKAGES=(
     firefox mpv pavucontrol zip unzip flatpak steam discord
     base-devel git github-cli python python-pip uv nodejs npm go rust
     clang cmake ninja gdb lldb pkgconf ripgrep fd sqlite shellcheck shfmt
-    nss alsa-lib libxkbfile libsecret gtk3 libxss libxrandr lsof desktop-file-utils
+    nss alsa-lib libxkbfile libsecret gtk3 librsvg libxss libxrandr lsof desktop-file-utils
 )
 
 JUNO_ZORIN_PACKAGES=(
     gnome-settings-daemon gnome-control-center nautilus gnome-keyring dconf-gsettings-backend
     xdg-desktop-portal xdg-desktop-portal-gnome xdg-desktop-portal-gtk
-    python3-gi dconf-cli gir1.2-glib-2.0 kitty fonts-roboto fonts-jetbrains-mono
+    python3-gi dconf-cli gir1.2-glib-2.0 gir1.2-gtk-3.0 gir1.2-gdkpixbuf-2.0 librsvg2-common kitty fonts-roboto fonts-jetbrains-mono
     fontconfig jq libnotify-bin xdg-user-dirs xdg-utils curl diffutils procps dbus-x11
     mpv pavucontrol zip unzip flatpak git python3 nodejs libnss3 libasound2t64 libxkbfile1
     libsecret-1-0 libgtk-3-0t64 libxss1 libxrandr2 desktop-file-utils

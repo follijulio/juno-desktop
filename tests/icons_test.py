@@ -31,6 +31,18 @@ class IconThemeTests(unittest.TestCase):
         self.assertGreaterEqual(designs, 30)
         self.assertGreater(files, designs)
 
+    def test_places_and_menu_have_distinct_contexts_and_symbolic_outlines(self):
+        for name in ('folder', 'user-home', 'folder-documents', 'folder-download', 'folder-pictures', 'folder-music', 'folder-videos'):
+            regular = self.theme / f'scalable/places/{name}.svg'
+            symbolic = self.theme / f'scalable/places/{name}-symbolic.svg'
+            self.assertTrue(regular.is_file())
+            self.assertTrue(symbolic.is_file())
+            self.assertNotEqual(regular.read_bytes(), symbolic.read_bytes())
+            self.assertNotIn('width="56"', symbolic.read_text(encoding='utf-8'))
+        for name in ('applications-office', 'applications-system', 'applications-internet'):
+            self.assertTrue((self.theme / f'scalable/categories/{name}-symbolic.svg').is_file())
+        self.assertTrue((self.theme / 'scalable/actions/system-lock-screen-symbolic.svg').is_file())
+
     def test_corrupt_or_missing_icon_is_refused(self):
         icon = self.theme / "scalable/apps/firefox.svg"
         icon.write_bytes(icon.read_bytes() + b"broken")

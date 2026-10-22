@@ -42,6 +42,9 @@ juno_validate_staged() {
     local stage file family fonts_stage gnome_stage
     for stage in "${JUNO_STAGES[@]}"; do
         [[ ( -d $stage || -f $stage ) && ! -L $stage ]] || juno_die "Staging indisponível: $stage."
+        # User launchers are data; do not validate unrelated user scripts found
+        # inside this preserved directory as project-owned configuration.
+        [[ $stage != "$(txn_stage_for '.local/share/applications')" ]] || continue
         while IFS= read -r -d '' file; do
             if [[ $file == *.sh || $file == */bin/* ]]; then
                 bash -n "$file" || juno_die "Script inválido: $file."

@@ -58,6 +58,7 @@ txn_stage_for() {
     case $1 in
         .bashrc) printf '%s\n' "$TEST_ROOT/stage/bashrc" ;;
         .config/Code/User/settings.json) printf '%s\n' "$TEST_ROOT/stage/settings.json" ;;
+        .config/mimeapps.list) printf '%s\n' "$TEST_ROOT/stage/mimeapps.list" ;;
         *) return 1 ;;
     esac
 }
@@ -65,6 +66,7 @@ txn_stage_input_for() {
     case $1 in
         .bashrc) printf '%s\n' "$TEST_ROOT/original-rc" ;;
         .config/Code/User/settings.json) printf '%s\n' "$TEST_ROOT/original-settings" ;;
+        .config/mimeapps.list) printf '%s\n' "$TEST_ROOT/missing-mimeapps.list" ;;
         *) return 1 ;;
     esac
 }

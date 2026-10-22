@@ -35,6 +35,9 @@ bash tests/runtime.sh
 bash tests/session.sh
 bash tests/multilib.sh
 bash tests/applications.sh
+bash tests/browser.sh
+bash tests/browser_transaction.sh
+bash tests/adaptive_icons.sh
 bash tests/vscode.sh
 bash tests/wallpaper.sh
 printf 'Verificações locais concluídas. A sessão gráfica exige aceitação nativa em cada distribuição alvo.\n'

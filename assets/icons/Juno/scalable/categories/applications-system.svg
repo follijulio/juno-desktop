@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>Sistema — Juno</title>
+  <desc>Original application icon: a cream illustration on a colored rounded tile.</desc>
+  <rect x="4" y="6" width="56" height="56" rx="12" fill="#24343a" opacity=".2"/>
+  <rect x="4" y="3" width="56" height="56" rx="12" fill="#319e9a"/>
+  <g transform="rotate(-3 32 32)" stroke="#24343a" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M27 10h10l2 7 6 3 7-1 5 9-5 6v6l3 6-8 6-6-4-7 2-4 6-10-3v-7l-5-5-7-1V30l7-3 3-6z" fill="#24343a" stroke="none" transform="translate(0 2)"/><path d="M26 8h10l2 7 6 3 7-1 5 9-5 6v6l3 6-8 6-6-4-7 2-4 6-10-3v-7l-5-5-7-1V28l7-3 3-6z" fill="#fff4d7"/><circle cx="31" cy="31" r="9" fill="#319e9a"/><circle cx="31" cy="31" r="4" fill="#fff4d7"/>
+  </g>
+</svg>

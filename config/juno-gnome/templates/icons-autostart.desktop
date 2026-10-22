@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Juno Icons
+Comment=Aplica a identidade Juno a novos aplicativos
+Exec=/usr/bin/python3 .config/juno-gnome/lib/icon_theme.py watch
+OnlyShowIn=GNOME;
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

@@ -4,7 +4,7 @@ set -E
 
 JUNO_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 readonly JUNO_ROOT
-for module in common platform preflight packages validate transaction multilib applications vscode wallpapers gnome posh fonts shell; do
+for module in common platform preflight packages validate transaction multilib applications vscode wallpapers gnome posh fonts shell icons; do
     # shellcheck source=/dev/null
     source "$JUNO_ROOT/lib/$module.sh"
 done
@@ -121,6 +121,7 @@ juno_main() {
     juno_stage_gallery
     juno_stage_terminal
     juno_stage_fonts
+    juno_stage_icons
     juno_validate_staged
     if txn_changed; then
         txn_backup
@@ -134,6 +135,7 @@ juno_main() {
         txn_cleanup_stage
         juno_log 'As configurações Juno já estão atualizadas. Nenhum backup adicional foi criado.'
     fi
+    juno_finalize_browser
     juno_configure_gdm
     juno_log 'Ambiente Juno configurado com sucesso. Reinicie e selecione GNOME no gerenciador de login.'
     if [[ ${JUNO_SPOTIFY_SKIPPED:-0} == 1 ]]; then

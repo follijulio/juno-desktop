@@ -20,7 +20,8 @@ _txn_kind() {
 }
 _txn_allowed() {
     case "$1" in
-        .config/hypr|.config/waybar|.config/rofi|.config/mako|.config/kitty|.config/juno|.config/xdg-desktop-portal|.local/share/fonts/juno|.local/share/juno-desktop|.config/juno-gnome|.bashrc|.config/Code/User/settings.json|.config/environment.d/90-juno.conf|.local/share/icons/Juno) return 0;;
+        .local/share/icons/Juno-Auto|.local/share/applications|.config/autostart/juno-icons.desktop) return 0;;
+        .config/hypr|.config/waybar|.config/rofi|.config/mako|.config/kitty|.config/juno|.config/xdg-desktop-portal|.local/share/fonts/juno|.local/share/juno-desktop|.config/juno-gnome|.bashrc|.config/Code/User/settings.json|.config/environment.d/90-juno.conf|.local/share/icons/Juno|.config/mimeapps.list) return 0;;
         *) return 1;;
     esac
 }
@@ -174,7 +175,7 @@ txn_prepare() {
         fi
         JUNO_DESIRED_KINDS[index]=$(_txn_kind "$source") || return 1
         case ${JUNO_TARGETS[index]} in
-            .bashrc|.config/Code/User/settings.json)
+            .bashrc|.config/Code/User/settings.json|.config/mimeapps.list|.local/share/applications)
                 # Derive partial edits from a frozen input, then ensure it
                 # still matches before backing up or replacing user files.
                 : > "${JUNO_TXN_DIRS[index]}/merge-input" || return 1

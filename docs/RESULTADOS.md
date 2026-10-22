@@ -1,4 +1,4 @@
-# Resultados de validação — 18/10/2026
+# Resultados de validação
 
 Ambiente desta revisão: Windows, PowerShell, Git Bash 5.3.15, Python 3.15, Node.js, jq 1.8.2 e ShellCheck 0.11.0. A inspeção posterior acessou uma VM Arch/GNOME pelo VirtualBox. Nenhum pacote Linux foi instalado neste Windows.
 
@@ -138,3 +138,36 @@ O perfil atual mantém `enable-animations=true` no Zorin, conforme a preferênci
 O snapshot continua v3 com oito chaves. Backups e diários anteriores com animações `false`, `true` ou sem valor explícito permanecem válidos e são restaurados fielmente. A recuperação usa os valores registrados no diário, independentemente do novo padrão. O Arch mantém suas sete chaves.
 
 Após o ajuste, passaram 56 testes Python (54 aprovados e dois ignorados por links nativos no Windows), incluindo 23 do helper GNOME; 14 cenários GNOME; cinco cenários transacionais selecionados para os escopos antigos e o novo padrão; ShellCheck e `git diff --check`. Foram conferidos aplicação sobre `false`, reinstalação sem diferenças, rollback para o valor anterior, recuperação de diário v3 antigo e preservação de edições concorrentes. A aceitação gráfica no Zorin real continua pendente.
+
+
+## Perfil portátil de pastas, aparência e navegador — 22/10/2026
+
+Esta etapa altera o instalador e os recursos distribuídos para novas instalações e reinstalações nas plataformas suportadas. Não depende de nome de usuário, hardware ou configuração de máquina virtual. As seções anteriores registram as versões e os resultados das suas próprias etapas.
+
+| Verificação executada | Resultado |
+| --- | --- |
+| Recursos de ícones | Gerador reproduzível e validador aprovados: 105 desenhos e variantes, 227 nomes SVG, incluindo pastas, categorias, ações e variantes simbólicas; contextos, aliases, checksums e rejeição de conteúdo ativo conferidos |
+| Testes Python finais | 62 casos: 60 aprovados, dois ignorados por links nativos indisponíveis no Windows; 25 casos GNOME, oito de ícones e três de associações INI incluídos |
+| Sintaxe e ShellCheck | Aprovados para scripts de instalação, bibliotecas, configurações e testes; arquivos alterados do navegador conferidos novamente após o ajuste final |
+| Regressão completa | `bash tests/run.sh` concluído no Windows/Git Bash durante esta revisão; serviços, downloads e pacotes simulados. Novos testes e ajustes posteriores foram verificados separadamente nas checagens finais |
+| Transações de arquivos e GNOME | Suítes concluídas: 18 cenários de arquivos aprovados e seis ignorados por links; 15 cenários GNOME aprovados. Recuperação, concorrência, rollback e escopos antigos conferidos com backend/flock/sync simulados |
+| Associações do navegador | Merge preservou comentários e preferências não relacionadas; INI inválido/duplicado recusado. Backup e rollback de mimeapps.list preservaram também as edições substituídas; reinstalação sem backup duplicado |
+| Navegador e pacotes | Falha de instalação preservou Brave; associação não confirmada impediu remoção; plano APT com outro pacote foi recusado; Firefox nativo preservado; pacman removeu somente o Brave identificado nas fixtures |
+| Checagens finais | 62 testes Python, geração/validação de ícones, testes de navegador e suas transações, 14 cenários GNOME e sete de integração concluídos. Dry-run permaneceu sem alterações |
+
+O perfil usa nove destinos de arquivos e dez preferências GNOME. Snapshots v1/v2/v3 mantêm seus escopos de seis/sete/oito chaves; os novos são v4 no Zorin e v5 no Arch, incluindo aparência escura e animações ativadas. O manifesto de arquivos continua v2, com contagem explícita.
+
+Esta etapa não executou novos testes na VM. Renderização nas versões reais de GNOME/Zorin, integração de portais, serviços, autenticação e hardware continuam exigindo aceitação nativa. Ícones forçados por caminhos absolutos pelos próprios aplicativos ou extensões não são substituídos pela consulta normal ao tema. As remoções de Brave implementadas são as dos pacotes APT/pacman; instalações Snap/Flatpak do Brave não são removidas por elas.
+
+## Ícones adaptativos e atalho do terminal — 22/10/2026
+
+Esta revisão implementa a camada `Juno-Auto`, cópias locais de lançadores e atualização automática no login GNOME. Caminhos absolutos em `Icon` agora são tratados pelas cópias dos lançadores, superando a limitação da etapa anterior. As imagens internas dos aplicativos e recursos desenhados por extensões continuam fora desse mecanismo. A base permanece com 105 desenhos/variantes e 227 nomes SVG.
+
+- `bash tests/run.sh` concluiu no Windows/Git Bash: recursos, sintaxe, ShellCheck e suítes de instalação, plataformas, transações, GNOME, aplicativos, navegador, terminal, VS Code e wallpaper. A execução completa começou com 75 casos Python; os novos casos e ajustes posteriores foram verificados separadamente.
+- Checagens finais: `python -m unittest discover -s tests -p '*_test.py'` concluiu com 79 casos, 77 aprovados e dois ignorados por links nativos indisponíveis no Windows. Inclui 28 casos GNOME e 14 de ícones adaptativos. ShellCheck e `git diff --check` passaram.
+- `bash tests/adaptive_icons.sh` conferiu transação real de arquivos, reinstalação sem backup duplicado, recusa de edição concorrente, rollback, preservação de diário pendente pelo atualizador e staging do instalador com bibliotecas locais e escape do comando autostart. A decodificação GI e, no Windows, `flock`/`sync` foram substituídos por fixtures.
+- Conferidos lançadores com ícones absolutos e ações; preservação de comandos, comentários e associações; atualizações e remoções do aplicativo; prioridade de edições pessoais; entradas ocultas, subdiretórios e nomes com espaços/acentos; tratamento de ícone ausente e rejeição de SVG externo antes do decoder. Nenhum comando `Exec` foi executado.
+- `Super + Enter` usa caminho relocável próprio e preserva a lista de atalhos. Reinstalação, conflitos personalizados/nativos simulados, chave bloqueada e rollback passaram. Snapshots GNOME v6 contêm quatorze chaves; escopos históricos v1–v5 continuam aceitos. A instalação gerencia doze destinos de arquivos; atualizações de ícones usam apenas seus dois destinos e backups de arquivos v1.
+- Checagens finais selecionadas também concluíram 14 cenários GNOME, sete de integração, os testes de Firefox e suas transações e os validadores de ícones. Dry-run permaneceu sem gravações.
+
+Nenhum teste desta revisão acessou a VM. GTK/GdkPixbuf reais, login/autostart GNOME, resposta da grade/dock, aparência em diferentes escalas e concorrência/persistência POSIX reais permanecem pendentes de aceitação Linux. `tests/native.sh` agora inclui `tests/native_icons.py` para conferir os loaders SVG/PNG da distribuição; esse teste nativo não foi executado nesta etapa. Não foi medido ganho de desempenho do monitor.

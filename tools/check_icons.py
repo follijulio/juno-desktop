@@ -15,7 +15,10 @@ SVG = "http://www.w3.org/2000/svg"
 TAGS = {"svg", "g", "path", "rect", "circle", "ellipse", "line", "polyline", "polygon", "title", "desc"}
 NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 REQUIRED = {"firefox", "org.gnome.Nautilus", "kitty", "mpv", "pavucontrol", "steam",
-            "discord", "com.spotify.Client", "visual-studio-code", "org.gnome.Settings"}
+            "discord", "com.spotify.Client", "visual-studio-code", "org.gnome.Settings",
+            "folder", "user-home", "folder-documents", "folder-download", "folder-pictures",
+            "folder-music", "folder-videos", "folder-symbolic", "user-home-symbolic",
+            "applications-system", "applications-system-symbolic", "view-app-grid-symbolic"}
 
 
 def validate_svg(path: Path) -> None:
@@ -62,28 +65,39 @@ def validate_theme(theme: Path) -> tuple[int, int]:
     index.read_string((theme / "index.theme").read_text(encoding="utf-8"))
     section = index["Icon Theme"]
     if (section.get("Name") != "Juno" or section.get("Inherits") != "Adwaita,hicolor"
-            or section.get("Directories") != "scalable/apps"):
+            or section.get("Directories") != "scalable/apps,scalable/places,scalable/categories,scalable/actions"):
         raise ValueError("Índice ou fallback do tema inválido")
     size = index["scalable/apps"]
     if (size.get("Type") != "Scalable" or size.get("Context") != "Applications"
             or size.getint("MinSize") > 16 or size.getint("MaxSize") < 128 or size.getint("Size") != 64):
         raise ValueError("Escala ou contexto dos ícones inválido")
+    for directory, context in (("places", "Places"), ("categories", "Categories"), ("actions", "Actions")):
+        size = index[f"scalable/{directory}"]
+        if (size.get("Type") != "Scalable" or size.get("Context") != context
+                or size.getint("MinSize") > 16 or size.getint("MaxSize") < 128 or size.getint("Size") != 64):
+            raise ValueError("Escala ou contexto dos ícones inválido")
     metadata = json.loads((theme / "source.json").read_text(encoding="utf-8"))
     if metadata.get("version") != 1 or metadata.get("license") != "CC0-1.0" or not metadata.get("icons"):
         raise ValueError("Metadados dos ícones inválidos")
     names, portable_names = set(), set()
+    svg_paths = set()
     for icon in metadata["icons"]:
         primary = icon["name"]
+        context = icon.get("context", "apps")
+        if context not in {"apps", "places", "categories", "actions"}:
+            raise ValueError("Contexto de ícone inválido")
         for name in (primary, *icon["aliases"]):
             if not isinstance(name, str) or not NAME.fullmatch(name) or name.casefold() in portable_names:
                 raise ValueError("Nome de ícone inválido ou repetido")
             names.add(name)
             portable_names.add(name.casefold())
-            path = theme / "scalable/apps" / (name + ".svg")
+            relative = f"scalable/{context}/{name}.svg"
+            svg_paths.add(relative)
+            path = theme / relative
             validate_svg(path)
-            if path.read_bytes() != (theme / "scalable/apps" / (primary + ".svg")).read_bytes():
+            if path.read_bytes() != (theme / f"scalable/{context}" / (primary + ".svg")).read_bytes():
                 raise ValueError(f"Alias diferente do ícone original: {name}")
-    if not REQUIRED <= names or {"scalable/apps/" + name + ".svg" for name in names} != {p for p in actual if p.endswith(".svg")}:
+    if not REQUIRED <= names or svg_paths != {p for p in actual if p.endswith(".svg")}:
         raise ValueError("Cobertura dos aplicativos ou aliases incompleta")
     return len(metadata["icons"]), len(names)
 

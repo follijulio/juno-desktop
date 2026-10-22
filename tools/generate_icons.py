@@ -75,6 +75,8 @@ class Icon:
     drawing: str
     aliases: tuple[str, ...]
     tilt: int = -6
+    context: str = "apps"
+    symbolic: bool = False
 
 
 def icons() -> tuple[Icon, ...]:
@@ -341,7 +343,75 @@ def icons() -> tuple[Icon, ...]:
     )
 
 
+def places_icons() -> tuple[Icon, ...]:
+    folder = path("M12 21V15h16l6 6h18v30H12z", PAPER) + path("M12 26h40M16 47h31")
+    badges = (
+        ("folder", "Pasta", BLUE, "", ("inode-directory", "folder-open")),
+        ("user-home", "Pasta pessoal", TEAL, path("M23 39l9-8 9 8v9H23zm6 9v-7h6v7"), ("folder-home",)),
+        ("user-desktop", "Área de trabalho", BLUE, monitor(23, 30, 20, 14), ("folder-desktop",)),
+        ("folder-documents", "Documentos", GREEN, rect(26, 29, 15, 19) + lines(34, 39, 44, x=29, end=38), ()),
+        ("folder-download", "Downloads", ORANGE, path("M32 29v14m-7-6 7 7 7-7M23 47h18"), ("folder-downloads",)),
+        ("folder-music", "Músicas", PURPLE, path("M29 42V31l12-3v11M29 34l12-3") + circle(25, 43, 4) + circle(37, 40, 4), ()),
+        ("folder-pictures", "Imagens", TEAL, rect(23, 29, 20, 17) + path("M24 44l6-7 5 5 3-4 5 6") + circle(37, 34, 2), ("folder-photos",)),
+        ("folder-videos", "Vídeos", RED, rect(23, 30, 20, 16) + path("M30 33l8 5-8 5z", INK), ()),
+        ("folder-publicshare", "Compartilhados", GREEN, circle(26, 36, 4) + circle(39, 36, 4) + path("M20 47c0-9 12-9 12 0m1 0c0-9 12-9 12 0"), ("folder-remote", "folder-network")),
+        ("folder-templates", "Modelos", PURPLE, rect(23, 29, 14, 17) + rect(28, 33, 14, 17), ()),
+        ("folder-saved-search", "Pesquisa", NAVY, circle(30, 36, 7) + path("M35 42l7 7"), ()),
+        ("user-trash", "Lixeira", RED, path("M23 30h19m-16 0v-4h12v4m-13 0 2 19h12l2-19m-10 5v10m4-10v10"), ("user-trash-full",)),
+    )
+    result = []
+    for name, label, color, badge, aliases in badges:
+        drawing = folder + badge
+        result.append(Icon(name, label, color, drawing, aliases, -4, "places"))
+        # Symbolic menus tint alpha masks. Use outlines without an opaque tile,
+        # so folder seams and badges remain visible after GNOME recoloring.
+        outline = drawing.replace(f'fill="{PAPER}"', 'fill="none"')
+        result.append(Icon(name + "-symbolic", label, color, outline,
+                           tuple(alias + "-symbolic" for alias in aliases), -4, "places", True))
+    applications = {icon.name: icon for icon in icons()}
+    categories = (
+        ("applications-accessories", "Acessórios", "org.gnome.TextEditor"),
+        ("applications-development", "Desenvolvimento", "visual-studio-code"),
+        ("applications-office", "Escritório", "libreoffice-writer"),
+        ("applications-system", "Sistema", "org.gnome.Settings"),
+        ("applications-graphics", "Gráficos", "org.gnome.Photos"),
+        ("applications-internet", "Internet", "firefox"),
+        ("applications-multimedia", "Multimídia", "mpv"),
+        ("applications-utilities", "Utilitários", "org.gnome.Calculator"),
+        ("applications-other", "Aplicativos", "org.gnome.Software"),
+    )
+    for name, label, original in categories:
+        base = applications[original]
+        result.append(Icon(name, label, base.color, base.drawing, (), base.tilt, "categories"))
+        drawing = base.drawing.replace(f'fill="{PAPER}"', 'fill="none"')
+        result.append(Icon(name + "-symbolic", label, base.color, drawing, (), base.tilt, "categories", True))
+    actions = (
+        ("avatar-default", "Usuário", TEAL, circle(32, 21, 8) + path("M17 51v-9c0-15 30-15 30 0v9z", PAPER), ("system-users",)),
+        ("view-app-grid", "Todos os aplicativos", BLUE, "".join(rect(x, y, 7, 7) for x in (18, 29, 40) for y in (17, 28, 39)), ("view-grid", "start-here")),
+        ("system-search", "Pesquisar", TEAL, circle(28, 27, 13) + path("M38 38l13 13"), ("edit-find",)),
+        ("system-lock-screen", "Bloquear", PURPLE, rect(18, 29, 28, 23) + path("M23 29V19c0-13 18-13 18 0v10M32 37v7"), ("changes-prevent",)),
+        ("system-log-out", "Sair", ORANGE, path("M29 13H15v39h14M27 32h24m-8-8 8 8-8 8"), ()),
+        ("system-shutdown", "Desligar", RED, path("M32 12v20M22 19c-19 13-10 35 10 35s29-22 10-35"), ()),
+        ("preferences-system", "Configurações", NAVY, applications["org.gnome.Settings"].drawing, ()),
+    )
+    for name, label, color, drawing, aliases in actions:
+        if name != "preferences-system":
+            result.append(Icon(name, label, color, drawing, aliases, -4, "actions"))
+        outline = drawing.replace(f'fill="{PAPER}"', 'fill="none"')
+        result.append(Icon(name + "-symbolic", label, color, outline,
+                           tuple(alias + "-symbolic" for alias in aliases), -4, "actions", True))
+    result.append(Icon("zorin-appearance", "Zorin Appearance", BLUE,
+                       monitor() + path("M18 22h14m-14 5h20m-20 5h9"),
+                       ("org.zorin.Appearance",), -4))
+    return tuple(result)
+
+
 def svg(icon: Icon) -> str:
+    if icon.symbolic:
+        return ('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">'
+                f'<title>{escape(icon.label)} — Juno</title>'
+                f'<g fill="none" stroke="{INK}" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round">'
+                f'{icon.drawing}</g></svg>\n')
     return ("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
             '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">\n'
             f"  <title>{escape(icon.label)} — Juno</title>\n"
@@ -357,7 +427,7 @@ INDEX = """[Icon Theme]
 Name=Juno
 Comment=Original cream illustrations on colorful rounded tiles
 Inherits=Adwaita,hicolor
-Directories=scalable/apps
+Directories=scalable/apps,scalable/places,scalable/categories,scalable/actions
 
 [scalable/apps]
 Size=64
@@ -365,6 +435,27 @@ Type=Scalable
 MinSize=16
 MaxSize=512
 Context=Applications
+
+[scalable/places]
+Size=64
+Type=Scalable
+MinSize=16
+MaxSize=512
+Context=Places
+
+[scalable/categories]
+Size=64
+Type=Scalable
+MinSize=16
+MaxSize=512
+Context=Categories
+
+[scalable/actions]
+Size=64
+Type=Scalable
+MinSize=16
+MaxSize=512
+Context=Actions
 """
 
 LICENSE = """Juno application icon artwork
@@ -385,7 +476,7 @@ is claimed. The SVG drawings are original artwork, not copied brand assets.
 
 
 def expected_files() -> dict[str, bytes]:
-    designs = icons()
+    designs = icons() + places_icons()
     files = {"index.theme": INDEX.encode(), "LICENSE.txt": LICENSE.encode()}
     metadata = {
         "name": "Juno application icons",
@@ -405,8 +496,8 @@ def expected_files() -> dict[str, bytes]:
             if name.casefold() in names or "/" in name or "\\" in name:
                 raise ValueError(f"Duplicate or invalid icon name: {name}")
             names.add(name.casefold())
-            files[f"scalable/apps/{name}.svg"] = content
-        metadata["icons"].append({"name": icon.name, "aliases": list(icon.aliases)})
+            files[f"scalable/{icon.context}/{name}.svg"] = content
+        metadata["icons"].append({"name": icon.name, "aliases": list(icon.aliases), "context": icon.context})
     files["source.json"] = (json.dumps(metadata, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
     files["SHA256SUMS"] = "".join(
         f"{hashlib.sha256(content).hexdigest()}  {name}\n"
@@ -416,7 +507,7 @@ def expected_files() -> dict[str, bytes]:
 
 
 def preview(destination: Path) -> None:
-    designs = icons()
+    designs = icons() + places_icons()
     columns, cell_w, cell_h = 6, 174, 128
     rows = (len(designs) + columns - 1) // columns
     width, height = columns * cell_w + 32, rows * cell_h + 82
@@ -461,7 +552,7 @@ def main() -> int:
         if errors:
             print("\n".join(errors))
             return 1
-        print(f"Juno icons verified: {len(icons())} designs, {len(expected)-4} SVG files")
+        print(f"Juno icons verified: {len(icons() + places_icons())} designs, {len(expected)-4} SVG files")
         return 0
     for name, content in expected.items():
         location = DESTINATION / name
@@ -471,7 +562,7 @@ def main() -> int:
         location.write_bytes(content)
     if args.preview:
         preview(args.preview)
-    print(f"Juno icons generated: {len(icons())} designs, {len(expected)-4} SVG files")
+    print(f"Juno icons generated: {len(icons() + places_icons())} designs, {len(expected)-4} SVG files")
     return 0
 
 

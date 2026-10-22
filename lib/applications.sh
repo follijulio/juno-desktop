@@ -69,7 +69,66 @@ juno_install_zorin_app() {
         juno_die "Não foi possível confirmar a instalação de $label."
 }
 
+juno_configure_zorin_browser() {
+    [[ ${JUNO_PLATFORM:-arch} == zorin ]] || return 0
+    local desktop=org.mozilla.firefox.desktop
+    if [[ $(juno_browser_desktop) == firefox.desktop ]]; then
+        juno_log 'Firefox nativo existente preservado.'
+        return 0
+    fi
+    juno_require flatpak
+    juno_private_subdir browser
+    if ! flatpak info --user org.mozilla.firefox >/dev/null 2>&1; then
+        if ! juno_check_flathub; then
+            flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo ||
+                juno_die 'Falha ao configurar Flathub para Firefox.'
+            juno_check_flathub || juno_die 'Origem Flathub inválida.'
+        fi
+        flatpak install --user --noninteractive -y flathub org.mozilla.firefox ||
+            juno_die 'Firefox não foi instalado; Brave preservado.'
+    fi
+    flatpak info --user --show-commit org.mozilla.firefox > "$JUNO_STATE/browser/firefox.commit" ||
+        juno_die 'Firefox não foi verificado; Brave preservado.'
+    [[ -f $JUNO_HOME/.local/share/flatpak/exports/share/applications/$desktop ]] ||
+        juno_die 'Lançador Firefox ausente; Brave preservado.'
+}
+
+juno_finalize_browser() {
+    local desktop package plan
+    juno_require xdg-mime
+    desktop=$(juno_browser_desktop)
+    for package in x-scheme-handler/http x-scheme-handler/https text/html; do
+        [[ $(xdg-mime query default "$package") == "$desktop" ]] ||
+            juno_die 'Associação Firefox não confirmada; Brave preservado.'
+    done
+    if [[ ${JUNO_PLATFORM:-arch} == arch ]]; then
+        local -a brave_packages=()
+        for package in brave brave-bin brave-browser brave-beta-bin brave-nightly-bin; do
+            if pacman -Q -- "$package" >/dev/null 2>&1; then brave_packages+=("$package"); fi
+        done
+        if (( ${#brave_packages[@]} )); then
+            sudo pacman -R -- "${brave_packages[@]}" || juno_die 'Falha ao remover Brave pelo pacman.'
+            for package in "${brave_packages[@]}"; do
+                if pacman -Q -- "$package" >/dev/null 2>&1; then juno_die 'Brave continua instalado.'; fi
+            done
+        fi
+        return 0
+    fi
+    if [[ $(dpkg-query -W '-f=${db:Status-Status}' brave-browser 2>/dev/null || true) == installed ]]; then
+        plan=$(LC_ALL=C sudo apt-get --simulate --no-auto-remove remove -- brave-browser) ||
+            juno_die 'Não foi possível simular a remoção do Brave.'
+        while read -r package; do
+            [[ $package == brave-browser ]] || juno_die "Remoção adicional recusada: $package."
+        done < <(awk '$1 == "Remv" {print $2}' <<< "$plan")
+        sudo apt-get remove --no-auto-remove -- brave-browser || juno_die 'Falha ao remover Brave.'
+        [[ $(dpkg-query -W '-f=${db:Status-Status}' brave-browser 2>/dev/null || true) != installed ]] ||
+            juno_die 'Brave continua instalado.'
+    fi
+    juno_log 'Firefox padrão configurado; remoção APT do Brave concluída sem apagar dados pessoais.'
+}
+
 juno_install_applications() {
+    juno_configure_zorin_browser
     # A subshell contains juno_die: optional app failures must not abort setup.
     # shellcheck disable=SC2034
     JUNO_SPOTIFY_SKIPPED=0
@@ -91,10 +150,11 @@ juno_install_applications() {
 
 juno_applications_plan() {
     if [[ ${JUNO_PLATFORM:-arch} == zorin ]]; then
-        juno_log 'Aplicativos: Nautilus, mpv e pavucontrol pelos repositórios APT existentes. O navegador do Zorin será preservado.'
+        juno_log 'Aplicativos: Nautilus, mpv e pavucontrol pelos repositórios APT existentes. Firefox Flatpak do usuário será o padrão; remover Brave APT somente após verificar Firefox, preservando dados pessoais.'
         juno_log 'Steam e Discord (opcionais): Flatpak do usuário pelo Flathub. Instalações existentes serão preservadas, sem habilitar multilib.'
     else
         juno_log 'Aplicativos: Firefox, Nautilus, mpv, pavucontrol, Steam e Discord pelo pacman.'
+        juno_log 'Navegador: Firefox padrão para HTTP/HTTPS/HTML; remover somente pacotes Brave instalados (brave, brave-bin, brave-browser, brave-beta-bin ou brave-nightly-bin), sem remoção recursiva de dependências.'
         juno_log 'Steam: habilitar multilib se necessário, com backup de /etc/pacman.conf. O pacman solicitará o driver Vulkan de 32 bits compatível com sua GPU.'
     fi
     juno_log 'Spotify (opcional): Flatpak do usuário, com binário upstream e empacotamento comunitário do Flathub. Recusa ou falha não interrompe a configuração do desktop.'

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>Lixeira — Juno</title>
+  <desc>Original application icon: a cream illustration on a colored rounded tile.</desc>
+  <rect x="4" y="6" width="56" height="56" rx="12" fill="#24343a" opacity=".2"/>
+  <rect x="4" y="3" width="56" height="56" rx="12" fill="#db6261"/>
+  <g transform="rotate(-4 32 32)" stroke="#24343a" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M12 21V15h16l6 6h18v30H12z" fill="#fff4d7"/><path d="M12 26h40M16 47h31" fill="none"/><path d="M23 30h19m-16 0v-4h12v4m-13 0 2 19h12l2-19m-10 5v10m4-10v10" fill="none"/>
+  </g>
+</svg>

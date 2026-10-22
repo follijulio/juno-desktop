@@ -16,11 +16,6 @@ _juno_gsettings_run() (
     [[ ${JUNO_PLATFORM:-arch} != zorin ]] || profile_flags+=(--performance)
     # Only static planning avoids dconf entirely. Even reads can create dconf
     # shared-memory files, so backend operations need a safe runtime directory.
-    case $operation in
-        desired)
-            if "${context[@]}" python3 "$helper" "$operation" --home "$JUNO_HOME" "${profile_flags[@]}" "$@"; then return 0; else return $?; fi
-            ;;
-    esac
     (( EUID != 0 )) || { juno_warn 'GSettings deve ser aplicado como usuário comum.'; return 2; }
     runtime="/run/user/$(id -u)"
     if [[ -d $runtime && ! -L $runtime && $(stat -c %u -- "$runtime") == "$(id -u)" && $(stat -c %a -- "$runtime") == 700 ]]; then
@@ -72,6 +67,8 @@ juno_gsettings_recovery_check() { _juno_gsettings_run recovery-check --before "$
 juno_gnome_plan() {
     juno_log 'GNOME: Shell, Configurações, Nautilus, chaveiro e portal nativo; nenhuma remoção de pacotes existentes.'
     juno_log 'Perfil: ícones Juno, Roboto na interface, Space Mono em apps monoespaçados e wallpaper Ghibli; JetBrains Mono regular/Nerd para Kitty e VS Code.'
+    juno_log 'Aparência: tema escuro, animações ativadas e ícones Juno para aplicativos, pastas, categorias e ações. Preferências anteriores incluídas no backup.'
+    juno_log 'Super + Enter: abrir Kitty. Preservar outros atalhos e adaptar ícones de novos aplicativos automaticamente no próximo login.'
     juno_log 'GDM: habilitar para o próximo boot somente se nenhum outro gerenciador de login estiver configurado; sem iniciar ou reiniciar serviços.'
     juno_log 'GSettings: validação de schemas e permissões após instalar PyGObject; backup por chave, incluindo valores ausentes.'
     if [[ ${JUNO_PLATFORM:-arch} == zorin ]]; then

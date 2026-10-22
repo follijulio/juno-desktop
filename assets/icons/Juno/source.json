@@ -15,51 +15,59 @@
       "aliases": [
         "org.mozilla.firefox",
         "firefox-esr"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Nautilus",
       "aliases": [
         "system-file-manager",
         "nautilus"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "kitty",
       "aliases": [
         "net.kovidgoyal.kitty"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "mpv",
       "aliases": [
         "io.mpv.Mpv"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "pavucontrol",
       "aliases": [
         "org.pulseaudio.pavucontrol",
         "multimedia-volume-control"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "steam",
       "aliases": [
         "com.valvesoftware.Steam"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "discord",
       "aliases": [
         "com.discordapp.Discord"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "spotify",
       "aliases": [
         "com.spotify.Client"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "visual-studio-code",
@@ -68,60 +76,69 @@
         "code-oss",
         "com.visualstudio.code",
         "vscode"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Settings",
       "aliases": [
         "gnome-control-center",
         "preferences-system"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Contacts",
       "aliases": [
         "gnome-contacts",
         "address-book"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Calendar",
       "aliases": [
         "gnome-calendar",
         "office-calendar"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.clocks",
       "aliases": [
         "gnome-clocks"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Weather",
       "aliases": [
         "gnome-weather"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Maps",
       "aliases": [
         "gnome-maps"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Music",
       "aliases": [
         "gnome-music",
         "multimedia-player"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Totem",
       "aliases": [
         "totem",
         "org.gnome.Showtime"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Photos",
@@ -130,7 +147,8 @@
         "org.gnome.Loupe",
         "org.gnome.eog",
         "eog"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Snapshot",
@@ -139,20 +157,23 @@
         "cheese",
         "qv4l2",
         "qvidcap"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.SimpleScan",
       "aliases": [
         "simple-scan"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Calculator",
       "aliases": [
         "gnome-calculator",
         "accessories-calculator"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.TextEditor",
@@ -161,7 +182,8 @@
         "gedit",
         "accessories-text-editor",
         "gvim"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Terminal",
@@ -170,7 +192,8 @@
         "org.gnome.Ptyxis",
         "utilities-terminal",
         "gnome-terminal"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.SystemMonitor",
@@ -178,21 +201,24 @@
         "gnome-system-monitor",
         "utilities-system-monitor",
         "htop"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.DiskUtility",
       "aliases": [
         "gnome-disks",
         "palimpsest"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.FileRoller",
       "aliases": [
         "file-roller",
         "utilities-file-archiver"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Characters",
@@ -200,21 +226,24 @@
         "gnome-characters",
         "accessories-character-map",
         "gucharmap"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Yelp",
       "aliases": [
         "yelp",
         "help-browser"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Software",
       "aliases": [
         "gnome-software",
         "system-software-install"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Connections",
@@ -222,7 +251,8 @@
         "gnome-connections",
         "org.gnome.Boxes",
         "gnome-boxes"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "libreoffice-writer",
@@ -230,13 +260,15 @@
         "libreoffice-startcenter",
         "libreoffice",
         "org.libreoffice.LibreOffice.writer"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "libreoffice-calc",
       "aliases": [
         "org.libreoffice.LibreOffice.calc"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Evince",
@@ -244,109 +276,458 @@
         "evince",
         "org.gnome.Papers",
         "xreader"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "cmake",
       "aliases": [
         "CMakeSetup",
         "cmake-gui"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "QtProject-qtcreator",
       "aliases": [
         "org.qt-project.qtcreator",
         "qtcreator"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Screenshot",
       "aliases": [
         "gnome-screenshot",
         "applets-screenshooter"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Extensions",
       "aliases": [
         "org.gnome.Shell.Extensions"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Decibels",
       "aliases": [
         "decibels"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Epiphany",
       "aliases": [
         "epiphany",
         "web-browser"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Logs",
       "aliases": [
         "gnome-logs"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.Tour",
       "aliases": [
         "gnome-tour"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.baobab",
       "aliases": [
         "baobab"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.font-viewer",
       "aliases": [
         "gnome-font-viewer"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.gnome.tweaks",
       "aliases": [
         "gnome-tweaks",
         "gnome-tweak-tool"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "gnome-color-manager",
       "aliases": [
         "org.gnome.ColorProfileViewer"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "preferences-system-network",
       "aliases": [
         "rygel",
         "nm-connection-editor"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "ibus-setup",
       "aliases": [
         "org.freedesktop.IBus.Setup"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "org.freedesktop.MalcontentControl",
       "aliases": [
         "malcontent-control"
-      ]
+      ],
+      "context": "apps"
     },
     {
       "name": "hwloc",
       "aliases": [
         "lstopo"
-      ]
+      ],
+      "context": "apps"
+    },
+    {
+      "name": "folder",
+      "aliases": [
+        "inode-directory",
+        "folder-open"
+      ],
+      "context": "places"
+    },
+    {
+      "name": "folder-symbolic",
+      "aliases": [
+        "inode-directory-symbolic",
+        "folder-open-symbolic"
+      ],
+      "context": "places"
+    },
+    {
+      "name": "user-home",
+      "aliases": [
+        "folder-home"
+      ],
+      "context": "places"
+    },
+    {
+      "name": "user-home-symbolic",
+      "aliases": [
+        "folder-home-symbolic"
+      ],
+      "context": "places"
+    },
+    {
+      "name": "user-desktop",
+      "aliases": [
+        "folder-desktop"
+      ],
+      "context": "places"
+    },
+    {
+      "name": "user-desktop-symbolic",
+      "aliases": [
+        "folder-desktop-symbolic"
+      ],
+      "context": "places"
+    },
+    {
+      "name": "folder-documents",
+      "aliases": [],
+      "context": "places"
+    },
+    {
+      "name": "folder-documents-symbolic",
+      "aliases": [],
+      "context": "places"
+    },
+    {
+      "name": "folder-download",
+      "aliases": [
+        "folder-downloads"
+      ],
+      "context": "places"
+    },
+    {
+      "name": "folder-download-symbolic",
+      "aliases": [
+        "folder-downloads-symbolic"
+      ],
+      "context": "places"
+    },
+    {
+      "name": "folder-music",
+      "aliases": [],
+      "context": "places"
+    },
+    {
+      "name": "folder-music-symbolic",
+      "aliases": [],
+      "context": "places"
+    },
+    {
+      "name": "folder-pictures",
+      "aliases": [
+        "folder-photos"
+      ],
+      "context": "places"
+    },
+    {
+      "name": "folder-pictures-symbolic",
+      "aliases": [
+        "folder-photos-symbolic"
+      ],
+      "context": "places"
+    },
+    {
+      "name": "folder-videos",
+      "aliases": [],
+      "context": "places"
+    },
+    {
+      "name": "folder-videos-symbolic",
+      "aliases": [],
+      "context": "places"
+    },
+    {
+      "name": "folder-publicshare",
+      "aliases": [
+        "folder-remote",
+        "folder-network"
+      ],
+      "context": "places"
+    },
+    {
+      "name": "folder-publicshare-symbolic",
+      "aliases": [
+        "folder-remote-symbolic",
+        "folder-network-symbolic"
+      ],
+      "context": "places"
+    },
+    {
+      "name": "folder-templates",
+      "aliases": [],
+      "context": "places"
+    },
+    {
+      "name": "folder-templates-symbolic",
+      "aliases": [],
+      "context": "places"
+    },
+    {
+      "name": "folder-saved-search",
+      "aliases": [],
+      "context": "places"
+    },
+    {
+      "name": "folder-saved-search-symbolic",
+      "aliases": [],
+      "context": "places"
+    },
+    {
+      "name": "user-trash",
+      "aliases": [
+        "user-trash-full"
+      ],
+      "context": "places"
+    },
+    {
+      "name": "user-trash-symbolic",
+      "aliases": [
+        "user-trash-full-symbolic"
+      ],
+      "context": "places"
+    },
+    {
+      "name": "applications-accessories",
+      "aliases": [],
+      "context": "categories"
+    },
+    {
+      "name": "applications-accessories-symbolic",
+      "aliases": [],
+      "context": "categories"
+    },
+    {
+      "name": "applications-development",
+      "aliases": [],
+      "context": "categories"
+    },
+    {
+      "name": "applications-development-symbolic",
+      "aliases": [],
+      "context": "categories"
+    },
+    {
+      "name": "applications-office",
+      "aliases": [],
+      "context": "categories"
+    },
+    {
+      "name": "applications-office-symbolic",
+      "aliases": [],
+      "context": "categories"
+    },
+    {
+      "name": "applications-system",
+      "aliases": [],
+      "context": "categories"
+    },
+    {
+      "name": "applications-system-symbolic",
+      "aliases": [],
+      "context": "categories"
+    },
+    {
+      "name": "applications-graphics",
+      "aliases": [],
+      "context": "categories"
+    },
+    {
+      "name": "applications-graphics-symbolic",
+      "aliases": [],
+      "context": "categories"
+    },
+    {
+      "name": "applications-internet",
+      "aliases": [],
+      "context": "categories"
+    },
+    {
+      "name": "applications-internet-symbolic",
+      "aliases": [],
+      "context": "categories"
+    },
+    {
+      "name": "applications-multimedia",
+      "aliases": [],
+      "context": "categories"
+    },
+    {
+      "name": "applications-multimedia-symbolic",
+      "aliases": [],
+      "context": "categories"
+    },
+    {
+      "name": "applications-utilities",
+      "aliases": [],
+      "context": "categories"
+    },
+    {
+      "name": "applications-utilities-symbolic",
+      "aliases": [],
+      "context": "categories"
+    },
+    {
+      "name": "applications-other",
+      "aliases": [],
+      "context": "categories"
+    },
+    {
+      "name": "applications-other-symbolic",
+      "aliases": [],
+      "context": "categories"
+    },
+    {
+      "name": "avatar-default",
+      "aliases": [
+        "system-users"
+      ],
+      "context": "actions"
+    },
+    {
+      "name": "avatar-default-symbolic",
+      "aliases": [
+        "system-users-symbolic"
+      ],
+      "context": "actions"
+    },
+    {
+      "name": "view-app-grid",
+      "aliases": [
+        "view-grid",
+        "start-here"
+      ],
+      "context": "actions"
+    },
+    {
+      "name": "view-app-grid-symbolic",
+      "aliases": [
+        "view-grid-symbolic",
+        "start-here-symbolic"
+      ],
+      "context": "actions"
+    },
+    {
+      "name": "system-search",
+      "aliases": [
+        "edit-find"
+      ],
+      "context": "actions"
+    },
+    {
+      "name": "system-search-symbolic",
+      "aliases": [
+        "edit-find-symbolic"
+      ],
+      "context": "actions"
+    },
+    {
+      "name": "system-lock-screen",
+      "aliases": [
+        "changes-prevent"
+      ],
+      "context": "actions"
+    },
+    {
+      "name": "system-lock-screen-symbolic",
+      "aliases": [
+        "changes-prevent-symbolic"
+      ],
+      "context": "actions"
+    },
+    {
+      "name": "system-log-out",
+      "aliases": [],
+      "context": "actions"
+    },
+    {
+      "name": "system-log-out-symbolic",
+      "aliases": [],
+      "context": "actions"
+    },
+    {
+      "name": "system-shutdown",
+      "aliases": [],
+      "context": "actions"
+    },
+    {
+      "name": "system-shutdown-symbolic",
+      "aliases": [],
+      "context": "actions"
+    },
+    {
+      "name": "preferences-system-symbolic",
+      "aliases": [],
+      "context": "actions"
+    },
+    {
+      "name": "zorin-appearance",
+      "aliases": [
+        "org.zorin.Appearance"
+      ],
+      "context": "apps"
     }
   ]
 }

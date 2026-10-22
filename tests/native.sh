@@ -8,5 +8,6 @@ source "$ROOT/install.sh"
 juno_preflight_base
 juno_validate_gnome
 juno_validate_installed_fonts
+python3 "$ROOT/tests/native_icons.py"
 bash "$ROOT/tests/run.sh"
 printf 'Schemas GNOME e fontes conferidos. Complete a aceitação gráfica em docs/VALIDACAO.md.\n'

@@ -24,13 +24,16 @@ class Variant:
     def __init__(self, value):
         self.value = value
 
+    def unpack(self):
+        return self.value
+
     def equal(self, other):
         return self.value == other.value
 
     def print_(self, annotate):
         if type(self.value) is bool:
             return "true" if self.value else "false"
-        return gnome.string_variant(self.value)
+        return repr(self.value) if isinstance(self.value, list) else gnome.string_variant(self.value)
 
 
 class Backend:
@@ -52,7 +55,7 @@ class Backend:
             value = ast.literal_eval(entry["value"])
         except (ValueError, SyntaxError) as exc:
             raise gnome.SettingsError("GVariant inválido") from exc
-        if not isinstance(value, str):
+        if not isinstance(value, list if entry["type"] == "as" else str):
             raise gnome.SettingsError("tipo inválido")
         return Variant(value)
 
@@ -64,13 +67,18 @@ class Backend:
             raise gnome.SettingsError("valor fora da faixa")
 
     def read(self, entry):
-        return self.values.get((entry["schema"], entry["key"]))
+        key = (entry["schema"], entry["path"], entry["key"]) if entry["path"] else (entry["schema"], entry["key"])
+        return self.values.get(key)
+
+    def effective(self, entry):
+        return self.read(entry) or (Variant([]) if entry["type"] == "as" else Variant(""))
 
     def write(self, entry):
         if self.fail_at == len(self.writes):
             raise gnome.SettingsError("gravação interrompida")
         value = self.parse(entry)
-        self.values[(entry["schema"], entry["key"])] = value
+        key = (entry["schema"], entry["path"], entry["key"]) if entry["path"] else (entry["schema"], entry["key"])
+        self.values[key] = value
         self.writes.append(copy.deepcopy(entry))
 
     def sync(self):
@@ -82,23 +90,64 @@ class GnomeSettingsTests(unittest.TestCase):
         self.home = Path("C:/Users/Test Home ç") if os.name == "nt" else Path("/tmp/Test Home ç")
         self.desired = gnome.desired_document(self.home)
         self.performance = gnome.desired_document(self.home, performance=True)
-        self.legacy = {"version": 1, "entries": copy.deepcopy(self.desired["entries"][:-1])}
+        self.legacy = {"version": 1, "entries": copy.deepcopy(self.desired["entries"][:6])}
 
     def test_profile_limits_and_wallpaper_uri_encoding(self):
-        self.assertEqual(self.desired["version"], 2)
-        self.assertEqual(len(self.desired["entries"]), 7)
+        self.assertEqual(self.desired["version"], 6)
+        self.assertEqual(len(self.desired["entries"]), 14)
         values = {entry["key"]: entry["value"] for entry in self.desired["entries"]}
         self.assertEqual(values["font-name"], "'Roboto 11'")
         self.assertEqual(values["monospace-font-name"], "'Space Mono 11'")
-        self.assertEqual(values["icon-theme"], "'Juno'")
+        self.assertEqual(values["icon-theme"], "'Juno-Auto'")
         self.assertIn("Test%20Home%20%C3%A7", values["picture-uri"])
         self.assertEqual(values["picture-uri"], values["picture-uri-dark"])
 
-    def test_performance_profile_adds_only_boolean_animation_setting(self):
-        self.assertEqual(self.performance["version"], 3)
-        self.assertEqual(len(self.performance["entries"]), 8)
-        self.assertEqual(self.performance["entries"][:-1], self.desired["entries"])
-        self.assertEqual(self.performance["entries"][-1], {
+    def test_custom_shortcut_preserves_list_and_is_idempotent(self):
+        previous = "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/"
+        backend = Backend({(gnome.MEDIA_KEYS, "custom-keybindings"): Variant([previous])})
+        document = gnome.desired_with_backend(self.home, False, backend)
+        bindings = next(entry for entry in document["entries"] if entry["key"] == "custom-keybindings")
+        self.assertEqual(backend.parse(bindings).unpack(), [previous, gnome.TERMINAL_PATH])
+        before = gnome.snapshot(document, backend)
+        gnome.apply_document(document, backend)
+        again = gnome.desired_with_backend(self.home, False, backend)
+        self.assertEqual(again, document)
+        gnome.apply_document(before, backend)
+        self.assertEqual(backend.values[gnome.MEDIA_KEYS, "custom-keybindings"].unpack(), [previous])
+
+    def test_shortcut_conflict_and_locked_list_preserve_other_bindings(self):
+        backend = Backend({(gnome.MEDIA_KEYS, "custom-keybindings"): Variant(["/existing/"]),
+                           (gnome.CUSTOM_KEYS, "/existing/", "binding"): Variant("<Super>Return")})
+        with self.assertRaisesRegex(gnome.SettingsError, "outro atalho"):
+            gnome.desired_with_backend(self.home, False, backend)
+        self.assertEqual(backend.writes, [])
+        backend = Backend(locked="custom-keybindings")
+        with self.assertRaises(gnome.SettingsError):
+            gnome.apply_document(self.desired, backend)
+        self.assertEqual(backend.writes, [])
+        backend = Backend()
+        backend.shortcut_conflict = lambda: "org.gnome.desktop.wm.keybindings.example"
+        with self.assertRaisesRegex(gnome.SettingsError, "atalho nativo"):
+            gnome.desired_with_backend(self.home, False, backend)
+        self.assertEqual(backend.writes, [])
+
+    def test_old_ten_key_backups_leave_shortcuts_untouched(self):
+        for version in (4, 5):
+            old = {"version": version, "entries": copy.deepcopy(self.desired["entries"][:10])}
+            backend = Backend({(gnome.MEDIA_KEYS, "custom-keybindings"): Variant(["/existing/"])})
+            before = gnome.snapshot(old, backend)
+            gnome.apply_document(old, backend)
+            gnome.apply_document(before, backend)
+            self.assertEqual(backend.values[gnome.MEDIA_KEYS, "custom-keybindings"].unpack(), ["/existing/"])
+
+    def test_performance_profile_preserves_animations_and_sets_dark_theme(self):
+        self.assertEqual(self.performance["version"], 6)
+        self.assertEqual(len(self.performance["entries"]), 14)
+        self.assertEqual(self.performance["entries"][:7], self.desired["entries"][:7])
+        values = {entry["key"]: entry["value"] for entry in self.performance["entries"]}
+        self.assertEqual(values["color-scheme"], "'prefer-dark'")
+        self.assertEqual(values["gtk-theme"], "'ZorinBlue-Dark'")
+        self.assertEqual(self.performance["entries"][9], {
             "schema": gnome.INTERFACE, "path": None, "key": "enable-animations", "type": "b", "value": "true"})
         gnome.validate_shape(self.performance)
         for document in (dict(self.desired, version=3), dict(self.performance, version=2)):
@@ -167,7 +216,7 @@ class GnomeSettingsTests(unittest.TestCase):
                 backend = Backend({(gnome.INTERFACE, "icon-theme"): previous})
                 before = gnome.snapshot(self.desired, backend)
                 gnome.apply_document(self.desired, backend)
-                self.assertEqual(backend.values[(gnome.INTERFACE, "icon-theme")].value, "Juno")
+                self.assertEqual(backend.values[(gnome.INTERFACE, "icon-theme")].value, "Juno-Auto")
                 gnome.apply_document(before, backend)
                 gnome.verify(before, backend)
                 self.assertTrue(gnome.equal_value(backend.values[(gnome.INTERFACE, "icon-theme")], previous))
@@ -184,7 +233,8 @@ class GnomeSettingsTests(unittest.TestCase):
                 self.assertTrue(gnome.equal_value(backend.values[(gnome.INTERFACE, "enable-animations")], previous))
 
     def test_old_six_and_seven_key_scope_preserve_concurrent_animation_changes(self):
-        for document in (self.legacy, self.desired):
+        old_seven = {"version": 2, "entries": copy.deepcopy(self.desired["entries"][:7])}
+        for document in (self.legacy, old_seven):
             with self.subTest(version=document["version"]):
                 backend = Backend({(gnome.INTERFACE, "enable-animations"): Variant(True)})
                 before = gnome.snapshot(document, backend)
@@ -197,6 +247,30 @@ class GnomeSettingsTests(unittest.TestCase):
                 gnome.apply_document(before, backend)
                 self.assertIs(backend.values[(gnome.INTERFACE, "enable-animations")].value, False)
                 self.assertNotIn("enable-animations", {entry["key"] for entry in backend.writes})
+
+    def test_old_eight_key_backup_preserves_dark_preferences(self):
+        old = {"version": 3, "entries": copy.deepcopy(self.desired["entries"][:7] + self.desired["entries"][9:10])}
+        backend = Backend({(gnome.INTERFACE, "gtk-theme"): Variant("Custom"),
+                           (gnome.INTERFACE, "color-scheme"): Variant("prefer-light")})
+        before = gnome.snapshot(old, backend)
+        gnome.apply_document(old, backend)
+        gnome.apply_document(before, backend)
+        self.assertEqual(backend.values[(gnome.INTERFACE, "gtk-theme")].value, "Custom")
+        self.assertEqual(backend.values[(gnome.INTERFACE, "color-scheme")].value, "prefer-light")
+        self.assertNotIn("gtk-theme", {entry["key"] for entry in backend.writes})
+
+    def test_dark_settings_backup_and_lock_before_writes(self):
+        for document in (self.desired, self.performance):
+            backend = Backend({(gnome.INTERFACE, "gtk-theme"): Variant("Custom")})
+            before = gnome.snapshot(document, backend)
+            gnome.apply_document(document, backend)
+            gnome.apply_document(before, backend)
+            gnome.verify(before, backend)
+            for key in ("gtk-theme", "color-scheme"):
+                locked = Backend(locked=key)
+                with self.assertRaises(gnome.SettingsError):
+                    gnome.apply_document(document, locked)
+                self.assertEqual(locked.writes, [])
 
     def test_performance_recovery_preserves_divergent_animation_value(self):
         backend = Backend()
@@ -212,7 +286,7 @@ class GnomeSettingsTests(unittest.TestCase):
 
     def test_performance_validates_boolean_and_locked_animation_before_any_write(self):
         malformed = copy.deepcopy(self.performance)
-        malformed["entries"][-1]["value"] = "'false'"
+        malformed["entries"][9]["value"] = "'false'"
         for backend, document in ((Backend(), malformed), (Backend(locked="enable-animations"), self.performance)):
             with self.subTest(document=document), self.assertRaises(gnome.SettingsError):
                 gnome.apply_document(document, backend)
@@ -268,12 +342,12 @@ class GnomeSettingsTests(unittest.TestCase):
         backend = Backend({(gnome.INTERFACE, "enable-animations"): Variant(True)})
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "desired.json"
-            self.assertEqual(gnome.main(["desired", "--home", str(self.home), "--performance", "--output", str(output)]), 0)
+            self.assertEqual(gnome.main(["desired", "--static", "--home", str(self.home), "--performance", "--output", str(output)]), 0)
             self.assertEqual(gnome.read_document(output), self.performance)
             with patch.object(gnome, "GioBackend", side_effect=AssertionError("static planning accessed Gio")):
                 self.assertEqual(gnome.main(["validate", "--home", str(self.home), "--performance", "--static"]), 0)
             historical_performance = copy.deepcopy(self.performance)
-            historical_performance["entries"][-1]["value"] = "false"
+            historical_performance["entries"][9]["value"] = "false"
             for document in (self.legacy, self.desired, self.performance, historical_performance):
                 template = Path(directory) / "template.json"
                 gnome.write_document(template, document)
@@ -290,7 +364,7 @@ class GnomeSettingsTests(unittest.TestCase):
 
     def test_cli_recovers_historical_disabled_animation_journal_with_new_default(self):
         historical = copy.deepcopy(self.performance)
-        historical["entries"][-1]["value"] = "false"
+        historical["entries"][9]["value"] = "false"
         backend = Backend({(gnome.INTERFACE, "enable-animations"): Variant(True)})
         before = gnome.snapshot(historical, backend)
         gnome.apply_document(historical, backend)

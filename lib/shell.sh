@@ -41,4 +41,12 @@ juno_stage_terminal() {
         "$JUNO_ROOT/config/juno-gnome/terminal-settings.json" || return 1
     _terminal_mode "$bash_input" "$bash_stage" || return 1
     _terminal_mode "$code_input" "$code_stage" || return 1
+    local mime_input mime_stage desktop
+    desktop=$(juno_browser_desktop)
+    _terminal_input "$JUNO_HOME/.config/mimeapps.list" || return 1
+    mime_input=$(txn_stage_input_for '.config/mimeapps.list') || return 1
+    mime_stage=$(txn_stage_for '.config/mimeapps.list') || return 1
+    _terminal_input "$mime_input" || return 1
+    python3 "$JUNO_ROOT/tools/stage_mimeapps.py" "$mime_input" "$mime_stage" "$desktop" || return 1
+    _terminal_mode "$mime_input" "$mime_stage" || return 1
 }

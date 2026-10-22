@@ -26,6 +26,7 @@ juno_preflight_base() {
 }
 juno_preflight_terminal() { :; }
 juno_begin_log() { :; }
+juno_finalize_browser() { :; }
 fc-cache() { :; }
 juno_preflight_base
 juno_define_targets
@@ -58,6 +59,7 @@ case "$1" in
         fi
         ;;
     optional-spotify|optional-zorin)
+        juno_configure_zorin_browser() { :; }
         [[ $1 != optional-zorin ]] || JUNO_PLATFORM=zorin
         # Exercise the real orchestration/traps and transaction after Flatpak
         # refuses its runtime. Only external services, downloads and schemas
@@ -95,6 +97,7 @@ case "$1" in
         juno_gsettings_restore() { cp -- "$1" "$TEST_ROOT/mock-settings"; }
         juno_stage_gallery() { :; }
         juno_stage_terminal() { :; }
+        juno_stage_icons() { :; }
         juno_validate_staged() { :; }
         juno_validate_installed_fonts() { :; }
         juno_configure_gdm() { printf 'gdm\n' >> "$TEST_ROOT/application-calls"; }

@@ -13,6 +13,20 @@ juno_require() {
     done
 }
 
+juno_browser_desktop() {
+    # Zorin's small APT Firefox wizard has no real browser in /usr/lib.
+    # Preserve an existing native Firefox instead of creating a duplicate.
+    if [[ ${JUNO_PLATFORM:-arch} != zorin || (
+        -f /usr/share/applications/firefox.desktop && (
+            -x /usr/lib/firefox/firefox || -x /usr/lib/firefox/firefox-bin
+        )
+    ) ]]; then
+        printf 'firefox.desktop\n'
+    else
+        printf 'org.mozilla.firefox.desktop\n'
+    fi
+}
+
 juno_define_targets() {
     # Contrato compartilhado com transaction.sh e validate.sh.
     # shellcheck disable=SC2034
@@ -21,6 +35,9 @@ juno_define_targets() {
         .local/share/juno-desktop .bashrc .config/Code/User/settings.json
         .config/environment.d/90-juno.conf
         .local/share/icons/Juno
+        .config/mimeapps.list
+        .local/share/icons/Juno-Auto .local/share/applications
+        .config/autostart/juno-icons.desktop
     )
     # shellcheck disable=SC2034
     JUNO_SOURCES=(
@@ -30,6 +47,10 @@ juno_define_targets() {
         "$JUNO_ROOT/config/juno-gnome/templates/settings.json"
         "$JUNO_ROOT/config/environment.d/90-juno.conf"
         "$JUNO_ROOT/assets/icons/Juno"
+        "$JUNO_ROOT/config/juno-gnome/templates/mimeapps.list"
+        "$JUNO_ROOT/config/juno-gnome/templates/empty"
+        "$JUNO_ROOT/config/juno-gnome/templates/empty"
+        "$JUNO_ROOT/config/juno-gnome/templates/icons-autostart.desktop"
     )
 }
 
@@ -53,7 +74,7 @@ juno_begin_log() {
 
 juno_private_subdir() {
     local name=$1 path
-    case $name in logs|packages|apps) ;; *) juno_die 'Subdiretório de estado inválido.' ;; esac
+    case $name in logs|packages|apps|browser) ;; *) juno_die 'Subdiretório de estado inválido.' ;; esac
     path="$JUNO_STATE/$name"
     [[ ! -L $path ]] || juno_die "O diretório de estado não pode ser um link: $path."
     if [[ -e $path ]]; then

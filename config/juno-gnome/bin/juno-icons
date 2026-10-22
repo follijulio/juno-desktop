@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+config=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
+if (( $# == 0 )); then set -- refresh; fi
+exec /usr/bin/python3 "$config/lib/icon_theme.py" "$@"

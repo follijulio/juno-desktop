@@ -4,7 +4,7 @@
 Snapshots store the explicit user value, not the effective schema default.
 Only the keys below are writable; no dconf database is copied or loaded.
 Snapshot versions retain their exact original scope when restored.
-The desired command and static validation do not require PyGObject.
+The desired --static command and static validation do not require PyGObject.
 """
 
 from __future__ import annotations
@@ -28,15 +28,33 @@ LEGACY_PROFILE = (
     (BACKGROUND, "picture-options", "s", "zoom"),
 )
 PROFILE = LEGACY_PROFILE + ((INTERFACE, "icon-theme", "s", "Juno"),)
-PERFORMANCE_PROFILE = PROFILE + ((INTERFACE, "enable-animations", "b", True),)
-SNAPSHOT_VERSION = 2
-PERFORMANCE_SNAPSHOT_VERSION = 3
+LEGACY_PERFORMANCE_PROFILE = PROFILE + ((INTERFACE, "enable-animations", "b", True),)
+PERFORMANCE_PROFILE = PROFILE + (
+    (INTERFACE, "color-scheme", "s", "prefer-dark"),
+    (INTERFACE, "gtk-theme", "s", "ZorinBlue-Dark"),
+    (INTERFACE, "enable-animations", "b", True),
+)
+DESKTOP_PROFILE = PROFILE + (
+    (INTERFACE, "color-scheme", "s", "prefer-dark"),
+    (INTERFACE, "gtk-theme", "s", "Adwaita-dark"),
+    (INTERFACE, "enable-animations", "b", True),
+)
+SNAPSHOT_VERSION = 6
 ALLOWED = {(schema, None, key): kind for schema, key, kind, _ in PROFILE}
 ALLOWED_BY_VERSION = {
     1: {(schema, None, key): kind for schema, key, kind, _ in LEGACY_PROFILE},
     2: ALLOWED,
-    3: {(schema, None, key): kind for schema, key, kind, _ in PERFORMANCE_PROFILE},
+    3: {(schema, None, key): kind for schema, key, kind, _ in LEGACY_PERFORMANCE_PROFILE},
+    4: {(schema, None, key): kind for schema, key, kind, _ in PERFORMANCE_PROFILE},
+    5: {(schema, None, key): kind for schema, key, kind, _ in DESKTOP_PROFILE},
 }
+MEDIA_KEYS = "org.gnome.settings-daemon.plugins.media-keys"
+CUSTOM_KEYS = MEDIA_KEYS + ".custom-keybinding"
+TERMINAL_PATH = "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/juno-terminal/"
+ALLOWED_BY_VERSION[6] = dict(ALLOWED_BY_VERSION[5])
+ALLOWED_BY_VERSION[6][MEDIA_KEYS, None, "custom-keybindings"] = "as"
+for _key in ("name", "command", "binding"):
+    ALLOWED_BY_VERSION[6][CUSTOM_KEYS, TERMINAL_PATH, _key] = "s"
 
 
 class SettingsError(Exception):
@@ -52,17 +70,41 @@ def string_variant(value: str) -> str:
     return "'" + value.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t") + "'"
 
 
-def desired_document(home: Path, performance: bool = False) -> dict:
+def desired_document(home: Path, performance: bool = False, bindings=()) -> dict:
     if not home.is_absolute():
         raise SettingsError("HOME precisa ser absoluto")
     wallpaper = (home / ".local/share/juno-desktop/wallpapers/gallery/ghibli-vale.jpg").as_uri()
     entries = []
-    profile = PERFORMANCE_PROFILE if performance else PROFILE
+    profile = PERFORMANCE_PROFILE if performance else DESKTOP_PROFILE
     for schema, key, kind, value in profile:
         variant = ("true" if value else "false") if kind == "b" else string_variant(wallpaper if value is None else value)
         entries.append({"schema": schema, "path": None, "key": key, "type": kind,
                         "value": variant})
-    return {"version": PERFORMANCE_SNAPSHOT_VERSION if performance else SNAPSHOT_VERSION, "entries": entries}
+    next(entry for entry in entries if entry["key"] == "icon-theme")["value"] = "'Juno-Auto'"
+    entries.append({"schema": MEDIA_KEYS, "path": None, "key": "custom-keybindings", "type": "as",
+                    "value": "[" + ", ".join(string_variant(path) for path in dict.fromkeys((*bindings, TERMINAL_PATH))) + "]"})
+    for key, value in (("name", "Juno Terminal"), ("command", "kitty"), ("binding", "<Super>Return")):
+        entries.append({"schema": CUSTOM_KEYS, "path": TERMINAL_PATH, "key": key, "type": "s", "value": string_variant(value)})
+    return {"version": SNAPSHOT_VERSION, "entries": entries}
+
+
+def desired_with_backend(home, performance, backend):
+    conflict = backend.shortcut_conflict() if hasattr(backend, "shortcut_conflict") else None
+    if conflict:
+        raise SettingsError("Super + Enter já pertence ao atalho nativo " + conflict + "; revise-o em Configurações antes de instalar")
+    probe = {"schema": MEDIA_KEYS, "path": None, "key": "custom-keybindings", "type": "as", "value": "[]"}
+    value = backend.effective(probe)
+    bindings = value.unpack() if value is not None else []
+    if not isinstance(bindings, list) or any(not isinstance(path, str) or not path.startswith("/") or not path.endswith("/") for path in bindings):
+        raise SettingsError("lista de atalhos GNOME inválida")
+    for path in bindings:
+        if path == TERMINAL_PATH:
+            continue
+        entry = {"schema": CUSTOM_KEYS, "path": path, "key": "binding", "type": "s", "value": None}
+        binding = backend.effective(entry)
+        if binding and binding.unpack().replace("<Mod4>", "<Super>") in ("<Super>Return", "<Super>KP_Enter"):
+            raise SettingsError("Super + Enter já pertence a outro atalho; remova o conflito em Configurações antes de instalar")
+    return desired_document(home, performance, bindings)
 
 
 def validate_shape(document: object) -> dict:
@@ -78,7 +120,7 @@ def validate_shape(document: object) -> dict:
     for entry in entries:
         if not isinstance(entry, dict) or set(entry) != {"schema", "path", "key", "type", "value"}:
             raise SettingsError("entrada de snapshot inválida")
-        if not isinstance(entry["schema"], str) or not isinstance(entry["key"], str) or entry["path"] is not None:
+        if not isinstance(entry["schema"], str) or not isinstance(entry["key"], str) or not isinstance(entry["path"], (str, type(None))):
             raise SettingsError("schema, chave ou caminho não autorizado")
         identity = (entry["schema"], entry["path"], entry["key"])
         if identity not in allowed or identity in seen:
@@ -185,6 +227,28 @@ class GioBackend:
         self.check_health()
         return value
 
+    def effective(self, entry):
+        settings, _ = self.setting(entry)
+        value = settings.get_value(entry["key"])
+        self.check_health()
+        return value
+
+    def shortcut_conflict(self):
+        for name in (MEDIA_KEYS, "org.gnome.desktop.wm.keybindings", "org.gnome.mutter.keybindings",
+                     "org.gnome.mutter.wayland.keybindings", "org.gnome.shell.keybindings"):
+            schema = self.source.lookup(name, True) if self.source else None
+            if schema is None:
+                continue
+            for key in schema.list_keys():
+                kind = schema.get_key(key).get_value_type().dup_string()
+                if kind not in ("s", "as"):
+                    continue
+                value = self.effective({"schema": name, "path": None, "key": key}).unpack()
+                values = value if isinstance(value, list) else [value]
+                if any(binding.lower().replace("<mod4>", "<super>") == "<super>return" for binding in values):
+                    return name + "." + key
+        return None
+
     def write(self, entry):
         settings, _ = self.setting(entry)
         value = self.parse(entry)
@@ -248,7 +312,12 @@ def apply_document(document: dict, backend) -> None:
     # Validate EVERY entry before making even one write.
     validate_document(document, backend, writable=True)
     try:
-        for entry in document["entries"]:
+        entries = document["entries"]
+        if document["version"] == 6:
+            # Zorin may react to gtk-theme changes by selecting its own icons.
+            # Select the adaptive icon theme after all other profile keys.
+            entries = [entry for entry in entries if entry["key"] != "icon-theme"] + [entry for entry in entries if entry["key"] == "icon-theme"]
+        for entry in entries:
             backend.write(entry)
     finally:
         backend.sync()
@@ -265,7 +334,7 @@ def main(argv=None) -> int:
             sub.add_argument("--output", type=Path, required=True)
         if command in ("snapshot", "validate", "restore", "verify"):
             sub.add_argument("--input", type=Path, required=command == "restore")
-        if command == "validate":
+        if command in ("validate", "desired"):
             sub.add_argument("--static", action="store_true", help="valida somente formato, sem importar Gio")
         if command == "recovery-check":
             sub.add_argument("--before", type=Path, required=True)
@@ -274,6 +343,8 @@ def main(argv=None) -> int:
     try:
         profile = desired_document(args.home, performance=args.performance)
         if args.command == "desired":
+            if not args.static:
+                profile = desired_with_backend(args.home, args.performance, GioBackend())
             write_document(args.output, profile)
             return 0
         document = read_document(args.input) if getattr(args, "input", None) else profile
@@ -281,6 +352,8 @@ def main(argv=None) -> int:
             validate_shape(document)
             return 0
         backend = GioBackend()
+        if not getattr(args, "input", None) and args.command != "recovery-check":
+            document = desired_with_backend(args.home, args.performance, backend)
         if args.command == "validate":
             validate_document(document, backend, writable=True)
         elif args.command == "snapshot":

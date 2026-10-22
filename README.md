@@ -1,6 +1,6 @@
 # Juno Desktop
 
-Ambiente para **Arch Linux e Zorin OS 18.x Core/Pro, x86_64, com GNOME**. O GNOME fornece painel, aplicativos, notificações, capturas, bloqueio e energia. O Juno configura fontes, ícones de aplicativos, wallpaper, Kitty e ferramentas de desenvolvimento, sem instalar extensões ou atalhos globais adicionais.
+Ambiente para **Arch Linux e Zorin OS 18.x Core/Pro, x86_64, com GNOME**. O GNOME fornece painel, aplicativos, notificações, capturas, bloqueio e energia. O Juno configura fontes, ícones de aplicativos, wallpaper, Kitty e ferramentas de desenvolvimento, sem instalar extensões. `Super + Enter` abre o Kitty.
 
 No Zorin 18, use Core ou Pro com GNOME e GDM já instalados. A edição Lite usa XFCE e fica fora deste perfil, assim como Zorin 17 e outras distribuições derivadas do Ubuntu. O instalador mantém o ambiente, os layouts e as extensões já existentes do Zorin; configura fontes, ícones, wallpaper e terminais, mantém animações ativadas e usa um conjunto essencial de dependências. A versão Zorin possui verificações portáteis; a aceitação em uma instalação Zorin real ainda precisa ser feita. Consulte os [resultados efetivos](docs/RESULTADOS.md).
 
@@ -32,7 +32,7 @@ Use uma conta comum com `sudo` e diretórios XDG padrão. O mesmo `install.sh` d
 
 4. Confira o resultado e entre novamente na sessão GNOME, ou na sessão Zorin existente. Reinicie quando as atualizações do sistema exigirem.
 
-No Zorin, a seleção padrão contém 39 dependências essenciais. Para incluir também as 20 ferramentas de desenvolvimento, confira o plano e instale com a mesma opção:
+No Zorin, a seleção padrão contém 42 dependências essenciais. Para incluir também as 20 ferramentas de desenvolvimento, confira o plano e instale com a mesma opção:
 
 ```bash
 bash install.sh --dry-run --with-dev-tools
@@ -50,19 +50,31 @@ São necessários `sudo`, `curl`, `tar`, `gzip`, `coreutils`, `findutils`, `util
 
 ## GNOME e migração
 
-No Arch, o perfil gerencia sete preferências: fontes da interface, documentos e aplicativos monoespaçados, tema de ícones, duas URIs de wallpaper e modo de preenchimento. No Zorin, gerencia também `enable-animations=true`, mantendo as animações GNOME de janelas e painel. São oito preferências com backup por chave. Reinstalar reaplica essas preferências, incluindo o wallpaper inicial, com backup do estado anterior. Isso também reativa as animações em instalações que aplicaram a versão anterior com animações desativadas.
+O perfil gerencia quatorze chaves GNOME: fontes, ícones, wallpaper, aparência escura, animações ativadas e o atalho do terminal. Usa `prefer-dark`, `Adwaita-dark` no Arch e `ZorinBlue-Dark` no Zorin. Todas recebem backup por chave. Reinstalar reaplica o perfil com backup do estado anterior, inclusive quando uma versão anterior desativou as animações.
 
-Aparência clara/escura, teclado, bloqueio, suspensão, atalhos e monitores permanecem nas Configurações do GNOME. Animações continuam sem alteração pelo Juno no Arch. Use as interfaces nativas para áudio, rede, brilho, energia e captura de tela. Nenhum atalho global Juno é acrescentado.
+Após instalar, a aparência pode ser ajustada nas Configurações do GNOME. Teclado, bloqueio, suspensão, atalhos e monitores permanecem nas configurações existentes. Use as interfaces nativas para áudio, rede, brilho, energia e captura de tela. `Super + Enter` abre o Kitty. Os outros atalhos personalizados são preservados; se essa combinação já estiver ocupada por outro atalho personalizado, a instalação informa o conflito antes de alterar configurações.
 
 O perfil Zorin reduz dependências adicionais e trabalho do prompt/cache de fontes. Mantém serviços, indexadores, segurança, parâmetros do kernel e políticas de energia da distribuição. Não há medição de ganho de RAM, tempo de boot ou desempenho em Zorin real; os limites e comandos executados estão nos [resultados](docs/RESULTADOS.md).
 
 A migração preserva arquivos e pacotes Hyprland existentes. A instalação GNOME não aplica configurações de Hyprland, Waybar, Rofi, Mako, Hypridle ou Hyprlock. Os arquivos históricos do repositório permanecem para compatibilidade com o ambiente anterior e seus backups; não são iniciados pelo perfil GNOME. Kitty, fontes e wallpapers continuam compartilhados.
 
-## Ícones dos aplicativos
+## Ícones dos aplicativos e pastas
 
-O tema **Juno** usa cartões coloridos de cantos arredondados, desenhos creme com contornos escuros e pequenas sombras sólidas. São 49 desenhos vetoriais originais para os aplicativos do Juno e os principais aplicativos GNOME, com aliases para diferentes nomes de lançadores. Aplicativos sem desenho próprio usam seus ícones disponíveis pelo fallback Adwaita/hicolor.
+O tema **Juno** usa cartões coloridos de cantos arredondados, desenhos creme com contornos escuros e pequenas sombras sólidas. Inclui pastas comuns, pessoais, Documentos, Downloads, Música, Imagens, Vídeos, compartilhamento e modelos, além de categorias e ações do menu. São 105 desenhos e variantes vetoriais, com 227 nomes SVG incluindo aliases. Menus simbólicos recebem desenhos em contorno que acompanham a cor e o contraste do GNOME; os ícones regulares usam cartões coloridos. Recursos sem desenho próprio herdam Adwaita/hicolor.
 
-O tema fica em `~/.local/share/icons/Juno` e é selecionado pelo GNOME. Seus arquivos e o tema anterior entram no backup. Os ícones de ações e estados continuam usando o fallback nativo. O VS Code usa um nome de ícone temático, mantendo uma cópia do PNG original em hicolor para funcionar também com outros temas.
+Tudo é instalado pelo `install.sh` na conta que o executa, usando os caminhos XDG padrão. Não depende de uma VM, nome de usuário, nome traduzido das pastas ou modelo de hardware. O tema inteiro é validado antes de substituir o anterior.
+
+A base fica em `~/.local/share/icons/Juno`; o GNOME seleciona `Juno-Auto`, que herda essa base. Seus arquivos e o tema anterior entram no backup. Os ícones de ações e estados continuam usando o fallback nativo. O VS Code usa um nome de ícone temático, mantendo uma cópia do PNG original em hicolor para funcionar também com outros temas.
+
+O instalador também adapta os ícones de todos os lançadores encontrados, incluindo aplicativos nativos, Flatpak e exportações Snap. Desenhos Juno existentes têm prioridade; outros símbolos recebem cartão colorido e tons creme/tinta. Cópias locais dos lançadores preservam comandos, ações, traduções e associações; apenas o ícone muda. Caminhos absolutos de ícone também são tratados. Os arquivos dos pacotes permanecem intactos.
+
+No login GNOME, um atualizador local verifica novos lançadores a cada minuto. Só reconstrói após mudanças; usa o mesmo bloqueio, backup e transação do instalador. Atualizações dos pacotes são acompanhadas, e cópias geradas de aplicativos removidos são limpas. Edições pessoais dos lançadores são preservadas. Para atualizar imediatamente, sem reinstalar:
+
+```bash
+~/.config/juno-gnome/bin/juno-icons refresh
+```
+
+Para um aplicativo manual, adicione seu `.desktop` em `~/.local/share/applications/` e execute o comando acima, ou aguarde a verificação automática. Para desenhar um ícone próprio, acrescente-o a `tools/generate_icons.py` e regenere a base. O atualizador respeita outro tema selecionado depois da instalação. Ícones embutidos dentro dos próprios aplicativos e logotipos desenhados por extensões não seguem necessariamente o tema do sistema.
 
 Os SVGs locais têm licença CC0 e checksums; não há download de tema durante a instalação. Para gerar uma prévia ou conferir os recursos:
 
@@ -73,6 +85,8 @@ python3 tools/generate_icons.py --check
 
 ## Terminal e aplicativos
 
+Firefox é o navegador padrão: pacote pacman no Arch e Flatpak por usuário no Zorin, preservando Firefox nativo já instalado. HTTP, HTTPS e HTML são preparados em `.config/mimeapps.list`, preservando comentários e associações não relacionadas, com backup e rollback. Após verificar o novo padrão, o instalador remove o pacote APT `brave-browser` no Zorin ou os pacotes Brave identificados pelo pacman no Arch, preservando perfis pessoais. Um plano APT que remova outros pacotes é recusado; não se usam purge ou remoção recursiva de dependências. Essas operações não removem instalações Snap ou Flatpak do Brave.
+
 Kitty abre `/bin/bash` com JetBrainsMono Nerd Font Mono e variantes Bold, Italic e Bold Italic. Mantém fundo tinta, texto papel e as 16 cores ANSI da paleta Juno.
 
 Oh My Posh é instalado por usuário em `~/.local/share/juno-apps/oh-my-posh/`, a partir de uma release oficial estável. SHA-256 e versão são verificados antes da ativação; releases anteriores são preservadas. O tema local mostra diretório, branch Git e falhas de comandos, sem downloads ao abrir o terminal. O segmento Git consulta apenas o HEAD, sem varrer alterações do repositório, e tem timeout de 200 ms. Um bloco identificado em `.bashrc` inicializa o prompt apenas no Bash interativo, preservando o restante do arquivo. Se o executável não estiver disponível, o shell continua funcional. O instalador não executa o `.bashrc` existente.
@@ -81,7 +95,7 @@ O VS Code recebe JetBrains Mono no editor, Nerd Font Mono no terminal integrado 
 
 | Grupo | Aplicativos e ferramentas |
 | --- | --- |
-| Uso diário | Firefox no Arch; navegador existente no Zorin; Nautilus, mpv e pavucontrol |
+| Uso diário | Firefox padrão; Nautilus, mpv e pavucontrol |
 | Entretenimento | Spotify, Steam e Discord |
 | Editor | **Visual Studio Code original da Microsoft**, estável, com Marketplace original |
 | Python | Python, pip e ambientes virtuais; uv no Arch |
@@ -140,7 +154,7 @@ bash install.sh --rollback ID-DO-BACKUP
 
 Use um ID listado e execute fora da sessão gráfica. A restauração não depende de internet nem de `sudo`; o estado substituído recebe outro backup para preservar suas edições. Backups v2 exigem as dependências locais de GSettings para restaurar preferências GNOME.
 
-Backups, manifestos, diário e logs ficam em `~/.local/state/juno-desktop/`, com acesso privado. Backups **v2** incluem arquivos gerenciados e as preferências GNOME: sete no Arch, oito no Zorin. Backups anteriores de seis ou sete preferências mantêm o próprio escopo; os de seis preservam o tema de ícones atual e ambos preservam animações que nunca registraram. A restauração de um backup Zorin novo recupera também o valor anterior de animações. Backups **v1** legados continuam restauráveis com seus destinos originais, sem snapshots GNOME inexistentes.
+Backups, manifestos, diário e logs ficam em `~/.local/state/juno-desktop/`, com acesso privado. Backups **v2** da instalação incluem doze destinos gerenciados e quatorze chaves GNOME, incluindo lançadores, autostart dos ícones, Firefox padrão e atalho do terminal. Atualizações automáticas de ícones criam backups de arquivos v1 com seu próprio escopo. Backups anteriores mantêm seus destinos e o próprio escopo de preferências: não alteram arquivos ou chaves que nunca registraram. Backups **v1** legados continuam restauráveis sem exigir snapshots GNOME inexistentes.
 
 Somente as chaves gerenciadas são restauradas, sem substituir a base dconf inteira. Arquivos originalmente ausentes voltam a ficar ausentes; preferências sem valor explícito voltam ao padrão do sistema.
 
