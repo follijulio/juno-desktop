@@ -18,45 +18,59 @@ expect_absent() { [[ ! -e $1 && ! -L $1 ]] || fail "arquivo deveria estar ausent
 # The tab-separated mock values stand in for validated GVariant snapshots;
 # the helper's real JSON/schema validation has separate Python tests.
 juno_gsettings_snapshot() {
-    local first second icons
+    local first second icons animations
     MOCK_SNAPSHOT_SCOPED=0
     if [[ $# == 2 ]]; then
         MOCK_SNAPSHOT_SCOPED=1
-        IFS=$'\t' read -r first second icons < "$2"
+        IFS=$'\t' read -r first second icons animations < "$2"
         if [[ -z $icons ]]; then
             printf '%s\t%s\n' "$MOCK_FIRST" "$MOCK_SECOND" > "$1"
             return 0
         fi
+        if [[ -z $animations ]]; then
+            printf '%s\t%s\t%s\n' "$MOCK_FIRST" "$MOCK_SECOND" "$MOCK_ICONS" > "$1"
+            return 0
+        fi
+    elif [[ $MOCK_PERFORMANCE == 0 ]]; then
+        printf '%s\t%s\t%s\n' "$MOCK_FIRST" "$MOCK_SECOND" "$MOCK_ICONS" > "$1"
+        return 0
     fi
-    printf '%s\t%s\t%s\n' "$MOCK_FIRST" "$MOCK_SECOND" "$MOCK_ICONS" > "$1"
+    printf '%s\t%s\t%s\t%s\n' "$MOCK_FIRST" "$MOCK_SECOND" "$MOCK_ICONS" "$MOCK_ANIMATIONS" > "$1"
 }
-juno_gsettings_desired() { printf 'Roboto\tGhibli\tJuno\n' > "$1"; }
+juno_gsettings_desired() {
+    if [[ $MOCK_PERFORMANCE == 1 ]]; then printf 'Roboto\tGhibli\tJuno\ttrue\n' > "$1";
+    else printf 'Roboto\tGhibli\tJuno\n' > "$1"; fi
+}
 juno_gsettings_validate() { [[ -f $1 ]]; }
 juno_gsettings_verify() {
-    local first second icons
+    local first second icons animations
     [[ ${MOCK_UNAVAILABLE:-0} == 0 ]] || return 2
-    IFS=$'\t' read -r first second icons < "$1"
-    [[ $MOCK_FIRST == "$first" && $MOCK_SECOND == "$second" && ( -z $icons || $MOCK_ICONS == "$icons" ) ]]
+    IFS=$'\t' read -r first second icons animations < "$1"
+    [[ $MOCK_FIRST == "$first" && $MOCK_SECOND == "$second" && ( -z $icons || $MOCK_ICONS == "$icons" ) &&
+       ( -z $animations || $MOCK_ANIMATIONS == "$animations" ) ]]
 }
 juno_gsettings_restore() {
-    local first second icons
+    local first second icons animations
     [[ ${MOCK_UNAVAILABLE:-0} == 0 ]] || return 2
-    IFS=$'\t' read -r first second icons < "$1"
+    IFS=$'\t' read -r first second icons animations < "$1"
     MOCK_FIRST=$first
     if [[ $MOCK_FAIL_ONCE == 1 ]]; then MOCK_FAIL_ONCE=0; return 1; fi
     MOCK_SECOND=$second
     [[ -z $icons ]] || MOCK_ICONS=$icons
+    [[ -z $animations ]] || MOCK_ANIMATIONS=$animations
     return 0
 }
 juno_gsettings_recovery_check() {
-    local before_first before_second before_icons desired_first desired_second desired_icons
+    local before_first before_second before_icons before_animations desired_first desired_second desired_icons desired_animations
     [[ ${MOCK_UNAVAILABLE:-0} == 0 ]] || return 2
-    IFS=$'\t' read -r before_first before_second before_icons < "$1"
-    IFS=$'\t' read -r desired_first desired_second desired_icons < "$2"
+    IFS=$'\t' read -r before_first before_second before_icons before_animations < "$1"
+    IFS=$'\t' read -r desired_first desired_second desired_icons desired_animations < "$2"
     [[ ( -z $before_icons && -z $desired_icons ) || ( -n $before_icons && -n $desired_icons ) ]] || return 2
+    [[ ( -z $before_animations && -z $desired_animations ) || ( -n $before_animations && -n $desired_animations ) ]] || return 2
     [[ ( $MOCK_FIRST == "$before_first" || $MOCK_FIRST == "$desired_first" ) &&
        ( $MOCK_SECOND == "$before_second" || $MOCK_SECOND == "$desired_second" ) &&
-       ( -z $before_icons || $MOCK_ICONS == "$before_icons" || $MOCK_ICONS == "$desired_icons" ) ]]
+       ( -z $before_icons || $MOCK_ICONS == "$before_icons" || $MOCK_ICONS == "$desired_icons" ) &&
+       ( -z $before_animations || $MOCK_ANIMATIONS == "$before_animations" || $MOCK_ANIMATIONS == "$desired_animations" ) ]]
 }
 
 fixture() {
@@ -72,6 +86,7 @@ fixture() {
     mkdir "${JUNO_SOURCES[2]}"
     printf 'new icons\n' > "${JUNO_SOURCES[2]}/index.theme"
     MOCK_FIRST=null; MOCK_SECOND=original; MOCK_ICONS=Previous; MOCK_SNAPSHOT_SCOPED=0; MOCK_FAIL_ONCE=0; MOCK_UNAVAILABLE=0
+    MOCK_PERFORMANCE=0; MOCK_ANIMATIONS=null
     source "$ROOT/lib/transaction.sh"
     JUNO_GSETTINGS_ENABLED=1
     txn_lock
@@ -203,22 +218,27 @@ prepare_legacy_v2_backup() {
 test_old_v2_restore_preserves_new_icons() {
     fixture
     prepare_legacy_v2_backup
+    MOCK_PERFORMANCE=1; MOCK_ANIMATIONS=true
     txn_restore "$LEGACY_BACKUP"
     [[ $MOCK_SNAPSHOT_SCOPED == 1 && $MOCK_FIRST == null && $MOCK_SECOND == original && $MOCK_ICONS == Keep ]]
     [[ $(cat "$JUNO_HOME/.local/share/icons/Juno/index.theme") == 'user icons' ]]
     [[ ${#JUNO_TARGETS[@]} == 2 ]]
+    [[ $MOCK_ANIMATIONS == true ]]
     txn_finalize
 }
 
 test_old_v2_restore_interruption_preserves_new_icons() {
     fixture
     prepare_legacy_v2_backup
+    MOCK_PERFORMANCE=1; MOCK_ANIMATIONS=true
     txn_restore "$LEGACY_BACKUP"
     MOCK_ICONS=Concurrent
+    MOCK_ANIMATIONS=false
     txn_recover
     [[ $MOCK_FIRST == custom && $MOCK_SECOND == photo && $MOCK_ICONS == Concurrent ]]
     [[ $(cat "$JUNO_HOME/.bashrc") == 'edited rc' ]]
     [[ $(cat "$JUNO_HOME/.local/share/icons/Juno/index.theme") == 'user icons' ]]
+    [[ $MOCK_ANIMATIONS == false ]]
     expect_absent "$JUNO_STATE/pending.tsv"
 }
 
@@ -232,6 +252,53 @@ test_new_icon_preference_concurrent_edit_preserved() {
     txn_recover
     [[ $MOCK_ICONS == Previous ]]
     expect_absent "$JUNO_HOME/.local/share/icons/Juno"
+}
+
+test_performance_restore_and_reinstall() {
+    local previous initial replacement
+    for previous in null true false; do
+        fixture
+        MOCK_PERFORMANCE=1; MOCK_ANIMATIONS=$previous
+        txn_prepare; txn_backup; txn_apply; txn_finalize
+        initial=$JUNO_BACKUP_ID
+        [[ $MOCK_ANIMATIONS == true ]]
+        txn_prepare
+        if txn_changed; then fail 'perfil de desempenho idêntico gerou alterações'; else [[ $? == 1 ]]; fi
+        txn_cleanup_stage
+        txn_restore "$initial"
+        replacement=$JUNO_BACKUP_ID
+        [[ $MOCK_ANIMATIONS == "$previous" ]]
+        txn_finalize
+        txn_restore "$replacement"; txn_finalize
+        [[ $MOCK_ANIMATIONS == true ]]
+    done
+}
+
+test_old_seven_key_restore_and_interruption_preserve_animations() {
+    fixture
+    txn_prepare; txn_backup; txn_apply; txn_finalize
+    local old=$JUNO_BACKUP_ID
+    MOCK_PERFORMANCE=1; MOCK_ANIMATIONS=true
+    txn_restore "$old"
+    [[ $MOCK_ANIMATIONS == true && $MOCK_SNAPSHOT_SCOPED == 1 ]]
+    MOCK_ANIMATIONS=false
+    txn_recover
+    [[ $MOCK_ANIMATIONS == false && $MOCK_ICONS == Juno ]]
+    expect_absent "$JUNO_STATE/pending.tsv"
+}
+
+test_performance_concurrent_animation_preserved() {
+    fixture
+    MOCK_PERFORMANCE=1
+    txn_prepare; txn_backup; txn_apply
+    MOCK_ANIMATIONS=false
+    if txn_recover; then fail 'edição concorrente das animações ignorada'; fi
+    [[ $MOCK_ANIMATIONS == false && -f $JUNO_STATE/pending.tsv && -f $JUNO_HOME/.bashrc ]]
+    MOCK_ANIMATIONS=true
+    txn_recover
+    [[ $MOCK_ANIMATIONS == null ]]
+    expect_absent "$JUNO_STATE/pending.tsv"
+    expect_absent "$JUNO_HOME/.bashrc"
 }
 
 test_legacy_restore_independent_targets() {
@@ -257,6 +324,8 @@ for scenario in test_new_and_idempotent test_restore_values_and_absence test_par
     test_concurrent_setting_preserved test_settings_changed_before_apply test_merge_input_changed_before_backup test_truncated_journal \
     test_missing_backend_preserves_journal test_old_v2_restore_preserves_new_icons \
     test_old_v2_restore_interruption_preserves_new_icons test_new_icon_preference_concurrent_edit_preserved \
+    test_performance_restore_and_reinstall test_old_seven_key_restore_and_interruption_preserve_animations \
+    test_performance_concurrent_animation_preserved \
     test_legacy_restore_independent_targets; do
     printf 'Teste GNOME/transação: %s\n' "$scenario"
     "$scenario"

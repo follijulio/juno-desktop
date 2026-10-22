@@ -18,8 +18,9 @@
           "type": "git",
           "style": "plain",
           "foreground": "#FFCC00",
-          "template": "  \ue0a0 {{ .HEAD }}{{ if .Working.Changed }} *{{ end }}{{ if .Staging.Changed }} +{{ end }}",
-          "properties": { "fetch_status": true, "fetch_upstream_icon": false }
+          "template": "  {{ .HEAD }}",
+          "timeout": 200,
+          "properties": { "fetch_status": false, "fetch_upstream_icon": false }
         },
         {
           "type": "status",

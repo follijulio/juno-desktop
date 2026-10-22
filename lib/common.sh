@@ -76,7 +76,7 @@ juno_on_failure() {
     else
         txn_cleanup_stage
         if command -v fc-cache >/dev/null 2>&1; then
-            fc-cache -f >/dev/null 2>&1 || juno_warn 'Atualize o cache das fontes após a recuperação com fc-cache -fv.'
+            juno_refresh_font_cache >/dev/null 2>&1 || juno_warn 'Não foi possível atualizar o cache das fontes após a recuperação; confira o registro.'
         fi
     fi
     juno_warn 'Pacotes e atualizações do sistema não são revertidos. Consulte o registro da execução.'

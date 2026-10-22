@@ -3,7 +3,7 @@
 
 Snapshots store the explicit user value, not the effective schema default.
 Only the keys below are writable; no dconf database is copied or loaded.
-Version 1 snapshots retain their original six-key scope when restored.
+Snapshot versions retain their exact original scope when restored.
 The desired command and static validation do not require PyGObject.
 """
 
@@ -28,11 +28,14 @@ LEGACY_PROFILE = (
     (BACKGROUND, "picture-options", "s", "zoom"),
 )
 PROFILE = LEGACY_PROFILE + ((INTERFACE, "icon-theme", "s", "Juno"),)
+PERFORMANCE_PROFILE = PROFILE + ((INTERFACE, "enable-animations", "b", True),)
 SNAPSHOT_VERSION = 2
+PERFORMANCE_SNAPSHOT_VERSION = 3
 ALLOWED = {(schema, None, key): kind for schema, key, kind, _ in PROFILE}
 ALLOWED_BY_VERSION = {
     1: {(schema, None, key): kind for schema, key, kind, _ in LEGACY_PROFILE},
     2: ALLOWED,
+    3: {(schema, None, key): kind for schema, key, kind, _ in PERFORMANCE_PROFILE},
 }
 
 
@@ -49,15 +52,17 @@ def string_variant(value: str) -> str:
     return "'" + value.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t") + "'"
 
 
-def desired_document(home: Path) -> dict:
+def desired_document(home: Path, performance: bool = False) -> dict:
     if not home.is_absolute():
         raise SettingsError("HOME precisa ser absoluto")
     wallpaper = (home / ".local/share/juno-desktop/wallpapers/gallery/ghibli-vale.jpg").as_uri()
     entries = []
-    for schema, key, kind, value in PROFILE:
+    profile = PERFORMANCE_PROFILE if performance else PROFILE
+    for schema, key, kind, value in profile:
+        variant = ("true" if value else "false") if kind == "b" else string_variant(wallpaper if value is None else value)
         entries.append({"schema": schema, "path": None, "key": key, "type": kind,
-                        "value": string_variant(wallpaper if value is None else value)})
-    return {"version": SNAPSHOT_VERSION, "entries": entries}
+                        "value": variant})
+    return {"version": PERFORMANCE_SNAPSHOT_VERSION if performance else SNAPSHOT_VERSION, "entries": entries}
 
 
 def validate_shape(document: object) -> dict:
@@ -255,6 +260,7 @@ def main(argv=None) -> int:
     for command in ("desired", "validate", "snapshot", "apply", "restore", "verify", "recovery-check"):
         sub = subparsers.add_parser(command)
         sub.add_argument("--home", type=Path, required=True)
+        sub.add_argument("--performance", action="store_true", help="preserva animações ativadas no perfil otimizado")
         if command in ("desired", "snapshot"):
             sub.add_argument("--output", type=Path, required=True)
         if command in ("snapshot", "validate", "restore", "verify"):
@@ -266,7 +272,7 @@ def main(argv=None) -> int:
             sub.add_argument("--desired", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
-        profile = desired_document(args.home)
+        profile = desired_document(args.home, performance=args.performance)
         if args.command == "desired":
             write_document(args.output, profile)
             return 0

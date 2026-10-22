@@ -17,11 +17,16 @@ JUNO_ZORIN_PACKAGES=(
     gnome-settings-daemon gnome-control-center nautilus gnome-keyring dconf-gsettings-backend
     xdg-desktop-portal xdg-desktop-portal-gnome xdg-desktop-portal-gtk
     python3-gi dconf-cli gir1.2-glib-2.0 kitty fonts-roboto fonts-jetbrains-mono
-    fontconfig jq libnotify-bin xdg-user-dirs qt6-wayland curl diffutils procps dbus-x11
-    mpv pavucontrol zip unzip flatpak build-essential git gh python3 python3-pip python3-venv
-    nodejs npm golang-go rustc cargo clang cmake ninja-build gdb lldb pkg-config
-    ripgrep fd-find sqlite3 shellcheck shfmt libnss3 libasound2t64 libxkbfile1
-    libsecret-1-0 libgtk-3-0t64 libxss1 libxrandr2 lsof desktop-file-utils
+    fontconfig jq libnotify-bin xdg-user-dirs xdg-utils curl diffutils procps dbus-x11
+    mpv pavucontrol zip unzip flatpak git python3 nodejs libnss3 libasound2t64 libxkbfile1
+    libsecret-1-0 libgtk-3-0t64 libxss1 libxrandr2 desktop-file-utils
+)
+
+# Compilers and development tools are optional on an existing Zorin desktop.
+# Existing tools are preserved regardless of the selected profile.
+JUNO_ZORIN_DEV_PACKAGES=(
+    build-essential gh python3-pip python3-venv npm golang-go rustc cargo clang
+    cmake ninja-build gdb lldb pkg-config ripgrep fd-find sqlite3 shellcheck shfmt lsof
 )
 
 # Keep the Arch default for callers that inspect the package contract directly.
@@ -30,7 +35,14 @@ JUNO_PACKAGES=("${JUNO_ARCH_PACKAGES[@]}")
 juno_set_packages() {
     case ${JUNO_PLATFORM:-arch} in
         arch) JUNO_PACKAGES=("${JUNO_ARCH_PACKAGES[@]}") ;;
-        zorin) JUNO_PACKAGES=("${JUNO_ZORIN_PACKAGES[@]}") ;;
+        zorin)
+            [[ ${JUNO_WITH_DEV_TOOLS:-0} == 0 || ${JUNO_WITH_DEV_TOOLS:-0} == 1 ]] ||
+                juno_die 'A seleção das ferramentas de desenvolvimento deve ser 0 ou 1.'
+            JUNO_PACKAGES=("${JUNO_ZORIN_PACKAGES[@]}")
+            if [[ ${JUNO_WITH_DEV_TOOLS:-0} == 1 ]]; then
+                JUNO_PACKAGES+=("${JUNO_ZORIN_DEV_PACKAGES[@]}")
+            fi
+            ;;
         *) juno_die 'Plataforma de pacotes desconhecida.' ;;
     esac
 }
@@ -45,8 +57,13 @@ juno_packages_plan() {
             ;;
         zorin)
             juno_log 'Zorin: preservar GNOME, GDM, áudio e repositórios existentes; sem atualização da distribuição.'
+            if [[ ${JUNO_WITH_DEV_TOOLS:-0} == 1 ]]; then
+                juno_log 'Perfil de pacotes: essencial e ferramentas de desenvolvimento (--with-dev-tools).'
+            else
+                juno_log 'Perfil de pacotes: essencial; compiladores e ferramentas adicionais somente com --with-dev-tools.'
+            fi
             juno_log 'APT: atualizar índices e instalar somente dependências ausentes; revisar a transação interativamente, sem remover ou atualizar pacotes já instalados explicitamente.'
-            printf 'Dependências: sudo apt-get install --no-upgrade --no-remove --'
+            printf 'Dependências: sudo apt-get install --no-install-recommends --no-upgrade --no-remove --'
             printf ' %q' "${JUNO_PACKAGES[@]}"
             printf '\n'
             ;;
@@ -79,23 +96,42 @@ _juno_install_arch_packages() {
     done
 }
 
-_juno_dpkg_installed() {
-    local records architecture status
-    records=$(dpkg-query -W '-f=${Architecture}\t${Status}\n' -- "$1" 2>/dev/null) || return 1
-    while IFS=$'\t' read -r architecture status; do
-        if [[ ( $architecture == amd64 || $architecture == all ) && $status == 'install ok installed' ]]; then
-            return 0
+# Each caller owns its inventory: do not keep a process-global cache that can
+# become stale after APT or between preflight and installation.
+_juno_dpkg_inventory() {
+    local -n inventory_result=$1
+    local records package architecture status
+    records=$(dpkg-query -W '-f=${binary:Package}\t${Architecture}\t${Status}\n') ||
+        juno_die 'Não foi possível consultar o inventário de pacotes DPKG. Nenhum dotfile foi substituído.'
+    inventory_result=()
+    while IFS=$'\t' read -r package architecture status; do
+        [[ -n $package ]] || continue
+        # Multi-Arch records can have a :architecture suffix. Only native and
+        # architecture-independent installed packages satisfy dependencies.
+        package=${package%%:*}
+        [[ $package =~ ^[a-z0-9][a-z0-9+.-]*$ ]] || continue
+        if [[ ( $architecture == amd64 || $architecture == all ) &&
+              ( $status == 'install ok installed' || $status == 'hold ok installed' ) ]]; then
+            # Populates the caller's associative array through the nameref.
+            # shellcheck disable=SC2034
+            inventory_result["$package"]=1
         fi
     done <<< "$records"
-    return 1
 }
 
 # Zorin already supplies its desktop and audio integration. Require that stack
 # instead of replacing it with Ubuntu metapackages or changing its login manager.
 juno_require_zorin_desktop() {
     local package
+    # Passed by name and consumed through desktop_packages below.
+    # shellcheck disable=SC2034
+    local -A desktop_inventory=()
+    if (( $# == 0 )); then
+        _juno_dpkg_inventory desktop_inventory
+    fi
+    local -n desktop_packages=${1:-desktop_inventory}
     for package in gnome-shell gnome-session-bin gsettings-desktop-schemas gdm3; do
-        _juno_dpkg_installed "$package" ||
+        [[ ${desktop_packages[$package]:-} == 1 ]] ||
             juno_die "O perfil Zorin exige GNOME já instalado (Core/Pro). Componente ausente: $package. Zorin Lite/XFCE não é suportado."
     done
 }
@@ -107,9 +143,11 @@ _juno_zorin_package_snapshot() {
 _juno_install_zorin_packages() {
     local snapshot_dir="$JUNO_STATE/packages" snapshot_id package status candidate
     local -a missing=()
-    juno_require_zorin_desktop
+    local -A installed=()
+    _juno_dpkg_inventory installed
+    juno_require_zorin_desktop installed
     for package in "${JUNO_PACKAGES[@]}"; do
-        _juno_dpkg_installed "$package" || missing+=("$package")
+        [[ ${installed[$package]:-} == 1 ]] || missing+=("$package")
     done
     if (( ${#missing[@]} == 0 )); then
         juno_log 'As dependências APT já estão instaladas. Nenhum índice ou pacote foi alterado.'
@@ -128,7 +166,7 @@ _juno_install_zorin_packages() {
         [[ -n $candidate && $candidate != '(none)' ]] ||
             juno_die "Dependência indisponível nos repositórios APT existentes: $package. Nenhum repositório foi adicionado e nenhum dotfile foi substituído."
     done
-    if sudo apt-get install --no-upgrade --no-remove -- "${missing[@]}"; then
+    if sudo apt-get install --no-install-recommends --no-upgrade --no-remove -- "${missing[@]}"; then
         _juno_zorin_package_snapshot "$snapshot_dir/$snapshot_id.after.txt"
     else
         status=$?
@@ -136,8 +174,10 @@ _juno_install_zorin_packages() {
         juno_die "O APT falhou (código $status). Nenhum dotfile foi substituído. Registro: $snapshot_dir/$snapshot_id.after.txt"
     fi
     juno_require gnome-shell gsettings dbus-run-session python3 fc-cache fc-match fc-scan jq diff cmp
+    _juno_dpkg_inventory installed
+    juno_require_zorin_desktop installed
     for package in "${JUNO_PACKAGES[@]}"; do
-        _juno_dpkg_installed "$package" || juno_die "Dependência obrigatória ausente após a instalação: $package."
+        [[ ${installed[$package]:-} == 1 ]] || juno_die "Dependência obrigatória ausente após a instalação: $package."
     done
 }
 

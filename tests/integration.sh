@@ -48,10 +48,14 @@ case "$1" in
         juno_preflight_install() { printf 'offline simulado\n' >&2; return 23; }
         juno_main
         ;;
-    dry|dry-zorin)
-        [[ $1 != dry-zorin ]] || JUNO_PLATFORM=zorin
+    dry|dry-zorin|dry-zorin-dev)
+        [[ $1 == dry ]] || JUNO_PLATFORM=zorin
         juno_preflight_install() { [[ $1 == readonly ]]; }
-        juno_main --dry-run
+        if [[ $1 == dry-zorin-dev ]]; then
+            juno_main --with-dev-tools --dry-run
+        else
+            juno_main --dry-run
+        fi
         ;;
     optional-spotify|optional-zorin)
         [[ $1 != optional-zorin ]] || JUNO_PLATFORM=zorin
@@ -107,6 +111,24 @@ bash "$TEST_ROOT/harness.sh" dry-zorin > "$TEST_ROOT/dry-zorin.log"
 grep -q 'apt-get install' "$TEST_ROOT/dry-zorin.log"
 if grep -q 'pacman' "$TEST_ROOT/dry-zorin.log"; then exit 1; fi
 printf 'OK: dry-run Zorin integrado sem gravações ou comandos Arch\n'
+if grep -Eq '^Dependências: .* (golang-go|cargo|npm)( |$)' "$TEST_ROOT/dry-zorin.log"; then exit 1; fi
+bash "$TEST_ROOT/harness.sh" dry-zorin-dev > "$TEST_ROOT/dry-zorin-dev.log"
+[[ -z $(find "$TEST_ROOT/home" -mindepth 1 -print -quit) ]]
+grep -Eq '^Dependências: .* golang-go( |$)' "$TEST_ROOT/dry-zorin-dev.log"
+grep -Eq '^Dependências: .* npm( |$)' "$TEST_ROOT/dry-zorin-dev.log"
+printf 'OK: --with-dev-tools combina com dry-run e inclui somente a seleção opcional\n'
+for invalid in duplicate-operation duplicate-dev rollback-dev missing-id; do
+    case $invalid in
+        duplicate-operation) invalid_args=(--dry-run --list-backups) ;;
+        duplicate-dev) invalid_args=(--with-dev-tools --with-dev-tools) ;;
+        rollback-dev) invalid_args=(--with-dev-tools --rollback invalid-id) ;;
+        missing-id) invalid_args=(--rollback) ;;
+    esac
+    status=0
+    bash "$ROOT/install.sh" "${invalid_args[@]}" > "$TEST_ROOT/invalid.log" 2>&1 || status=$?
+    [[ $status == 2 ]]
+done
+printf 'OK: combinações inválidas são recusadas antes das verificações e alterações\n'
 bash "$TEST_ROOT/harness.sh" pending > "$TEST_ROOT/pending.log"
 [[ -f "$TEST_ROOT/home/.local/state/juno-desktop/pending.tsv" ]]
 if bash "$TEST_ROOT/harness.sh" offline > "$TEST_ROOT/offline.log" 2>&1; then
@@ -144,4 +166,4 @@ grep -q 'Ambiente Juno configurado com sucesso' "$TEST_ROOT/optional-zorin.log"
 grep -q 'Steam não foi instalado' "$TEST_ROOT/optional-zorin.log"
 grep -q 'Discord não foi instalado' "$TEST_ROOT/optional-zorin.log"
 printf 'OK: perfil Zorin aplica fontes e arquivos apesar da recusa dos aplicativos opcionais\n'
-printf '5 cenários de integração passaram.\n'
+printf '7 cenários de integração passaram.\n'

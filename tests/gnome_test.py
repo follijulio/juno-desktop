@@ -28,6 +28,8 @@ class Variant:
         return self.value == other.value
 
     def print_(self, annotate):
+        if type(self.value) is bool:
+            return "true" if self.value else "false"
         return gnome.string_variant(self.value)
 
 
@@ -42,6 +44,10 @@ class Backend:
     def parse(self, entry):
         if entry["value"] is None:
             return None
+        if entry["type"] == "b":
+            if entry["value"] not in ("true", "false"):
+                raise gnome.SettingsError("GVariant booleano inválido")
+            return Variant(entry["value"] == "true")
         try:
             value = ast.literal_eval(entry["value"])
         except (ValueError, SyntaxError) as exc:
@@ -75,6 +81,7 @@ class GnomeSettingsTests(unittest.TestCase):
     def setUp(self):
         self.home = Path("C:/Users/Test Home ç") if os.name == "nt" else Path("/tmp/Test Home ç")
         self.desired = gnome.desired_document(self.home)
+        self.performance = gnome.desired_document(self.home, performance=True)
         self.legacy = {"version": 1, "entries": copy.deepcopy(self.desired["entries"][:-1])}
 
     def test_profile_limits_and_wallpaper_uri_encoding(self):
@@ -86,6 +93,17 @@ class GnomeSettingsTests(unittest.TestCase):
         self.assertEqual(values["icon-theme"], "'Juno'")
         self.assertIn("Test%20Home%20%C3%A7", values["picture-uri"])
         self.assertEqual(values["picture-uri"], values["picture-uri-dark"])
+
+    def test_performance_profile_adds_only_boolean_animation_setting(self):
+        self.assertEqual(self.performance["version"], 3)
+        self.assertEqual(len(self.performance["entries"]), 8)
+        self.assertEqual(self.performance["entries"][:-1], self.desired["entries"])
+        self.assertEqual(self.performance["entries"][-1], {
+            "schema": gnome.INTERFACE, "path": None, "key": "enable-animations", "type": "b", "value": "true"})
+        gnome.validate_shape(self.performance)
+        for document in (dict(self.desired, version=3), dict(self.performance, version=2)):
+            with self.subTest(document=document), self.assertRaises(gnome.SettingsError):
+                gnome.validate_shape(document)
 
     def test_rejects_unknown_missing_duplicate_type_and_path(self):
         for mutation in (lambda doc: doc["entries"].pop(),
@@ -154,6 +172,52 @@ class GnomeSettingsTests(unittest.TestCase):
                 gnome.verify(before, backend)
                 self.assertTrue(gnome.equal_value(backend.values[(gnome.INTERFACE, "icon-theme")], previous))
 
+    def test_animation_backup_and_rollback_preserve_explicit_and_absent_values(self):
+        for previous in (None, Variant(True), Variant(False)):
+            with self.subTest(previous=previous):
+                backend = Backend({(gnome.INTERFACE, "enable-animations"): previous})
+                before = gnome.snapshot(self.performance, backend)
+                gnome.apply_document(self.performance, backend)
+                self.assertIs(backend.values[(gnome.INTERFACE, "enable-animations")].value, True)
+                gnome.apply_document(before, backend)
+                gnome.verify(before, backend)
+                self.assertTrue(gnome.equal_value(backend.values[(gnome.INTERFACE, "enable-animations")], previous))
+
+    def test_old_six_and_seven_key_scope_preserve_concurrent_animation_changes(self):
+        for document in (self.legacy, self.desired):
+            with self.subTest(version=document["version"]):
+                backend = Backend({(gnome.INTERFACE, "enable-animations"): Variant(True)})
+                before = gnome.snapshot(document, backend)
+                backend.fail_at = 2
+                with self.assertRaises(gnome.SettingsError):
+                    gnome.apply_document(document, backend)
+                backend.values[(gnome.INTERFACE, "enable-animations")] = Variant(False)
+                gnome.recovery_check(before, document, backend)
+                backend.fail_at = None
+                gnome.apply_document(before, backend)
+                self.assertIs(backend.values[(gnome.INTERFACE, "enable-animations")].value, False)
+                self.assertNotIn("enable-animations", {entry["key"] for entry in backend.writes})
+
+    def test_performance_recovery_preserves_divergent_animation_value(self):
+        backend = Backend()
+        before = gnome.snapshot(self.performance, backend)
+        backend.fail_at = 7
+        with self.assertRaises(gnome.SettingsError):
+            gnome.apply_document(self.performance, backend)
+        backend.values[(gnome.INTERFACE, "enable-animations")] = Variant(False)
+        with self.assertRaises(gnome.Difference):
+            gnome.recovery_check(before, self.performance, backend)
+        self.assertIs(backend.values[(gnome.INTERFACE, "enable-animations")].value, False)
+        self.assertEqual(len(backend.writes), 7)
+
+    def test_performance_validates_boolean_and_locked_animation_before_any_write(self):
+        malformed = copy.deepcopy(self.performance)
+        malformed["entries"][-1]["value"] = "'false'"
+        for backend, document in ((Backend(), malformed), (Backend(locked="enable-animations"), self.performance)):
+            with self.subTest(document=document), self.assertRaises(gnome.SettingsError):
+                gnome.apply_document(document, backend)
+            self.assertEqual(backend.writes, [])
+
     def test_legacy_restore_and_interruption_leave_icon_theme_untouched(self):
         backend = Backend({(gnome.INTERFACE, "icon-theme"): Variant("Custom Icons")})
         before = gnome.snapshot(self.legacy, backend)
@@ -199,6 +263,49 @@ class GnomeSettingsTests(unittest.TestCase):
                 self.assertEqual(gnome.main(arguments), 0)
             self.assertEqual(gnome.read_document(output), gnome.snapshot(self.legacy, backend))
         self.assertEqual(backend.writes, [])
+
+    def test_cli_performance_flag_preserves_input_snapshot_scope(self):
+        backend = Backend({(gnome.INTERFACE, "enable-animations"): Variant(True)})
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "desired.json"
+            self.assertEqual(gnome.main(["desired", "--home", str(self.home), "--performance", "--output", str(output)]), 0)
+            self.assertEqual(gnome.read_document(output), self.performance)
+            with patch.object(gnome, "GioBackend", side_effect=AssertionError("static planning accessed Gio")):
+                self.assertEqual(gnome.main(["validate", "--home", str(self.home), "--performance", "--static"]), 0)
+            historical_performance = copy.deepcopy(self.performance)
+            historical_performance["entries"][-1]["value"] = "false"
+            for document in (self.legacy, self.desired, self.performance, historical_performance):
+                template = Path(directory) / "template.json"
+                gnome.write_document(template, document)
+                arguments = ["snapshot", "--home", str(self.home), "--performance", "--input", str(template), "--output", str(output)]
+                with patch.object(gnome, "GioBackend", return_value=backend):
+                    self.assertEqual(gnome.main(arguments), 0)
+                self.assertEqual(gnome.read_document(output), gnome.snapshot(document, backend))
+            # Restoring a performance backup on the Arch/default profile must
+            # still use the backup's original scope and boolean value.
+            with patch.object(gnome, "GioBackend", return_value=backend):
+                self.assertEqual(gnome.main(["restore", "--home", str(self.home), "--input", str(template)]), 0)
+                gnome.verify(historical_performance, backend)
+                self.assertIs(backend.values[(gnome.INTERFACE, "enable-animations")].value, False)
+
+    def test_cli_recovers_historical_disabled_animation_journal_with_new_default(self):
+        historical = copy.deepcopy(self.performance)
+        historical["entries"][-1]["value"] = "false"
+        backend = Backend({(gnome.INTERFACE, "enable-animations"): Variant(True)})
+        before = gnome.snapshot(historical, backend)
+        gnome.apply_document(historical, backend)
+        self.assertIs(backend.values[(gnome.INTERFACE, "enable-animations")].value, False)
+        with tempfile.TemporaryDirectory() as directory:
+            before_path, desired_path = Path(directory) / "before.json", Path(directory) / "desired.json"
+            gnome.write_document(before_path, before)
+            gnome.write_document(desired_path, historical)
+            with patch.object(gnome, "GioBackend", return_value=backend):
+                self.assertEqual(gnome.main(["recovery-check", "--home", str(self.home), "--performance",
+                                             "--before", str(before_path), "--desired", str(desired_path)]), 0)
+                self.assertEqual(gnome.main(["restore", "--home", str(self.home), "--performance",
+                                             "--input", str(before_path)]), 0)
+        gnome.verify(before, backend)
+        self.assertIs(backend.values[(gnome.INTERFACE, "enable-animations")].value, True)
 
     def test_comparison_uses_parsed_values(self):
         backend = Backend()

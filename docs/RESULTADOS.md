@@ -99,3 +99,42 @@ Esta revisão conclui o tema de ícones iniciado em 20/10 e acrescenta o perfil 
 | Projeto na VM | 187 arquivos atualizados após comparar com a versão anterior; cópias substituídas preservadas, sem sobrescrever divergências desconhecidas |
 
 APT, scripts de manutenção de pacotes, AppArmor, Flatpak, autenticação e login gráfico ainda exigem aceitação em Zorin real. Testes executados no Arch com chamadas APT simuladas não certificam esses componentes do Zorin. A inspeção do `.deb` não equivale à sua instalação. A VM continua sem representar instalação limpa ou migração Hyprland ativa; os limites de hardware e serviços registrados acima permanecem.
+
+## Otimização do perfil Zorin — 22/10/2026
+
+O perfil Zorin passa a selecionar 39 dependências essenciais; 20 ferramentas adicionais ficam disponíveis com `--with-dev-tools`. A seleção não remove ferramentas existentes. O inventário DPKG é consultado em lote por operação, incluindo pacotes retidos válidos, e atualizado após APT. A instalação dispensa recomendações opcionais, mantendo `xdg-utils` explícito para a integração do VS Code.
+
+O Zorin gerencia agora oito preferências GNOME, com `enable-animations=false`; o Arch mantém sete. O snapshot GNOME v3 inclui essa preferência booleana, enquanto snapshots anteriores de seis/sete chaves conservam seu próprio escopo. O formato do manifesto de arquivos continua v2. O prompt compartilhado exibe diretório, branch e erro sem varredura de alterações Git; o segmento Git tem timeout de 200 ms. A atualização de fontes força somente o diretório gerenciado e usa descoberta incremental quando ele está ausente ou restaurado como link.
+
+| Verificação executada nesta revisão | Resultado |
+| --- | --- |
+| Sintaxe Bash, ShellCheck e recursos | Aprovados; marca, PNG, galeria, gerador de ícones, SVGs e checksums conferidos |
+| Testes Python | 55 casos: 53 aprovados e dois ignorados por indisponibilidade de links simbólicos nativos no Windows; 22 testes do helper GNOME incluídos nesse total |
+| Plataforma/APT | 21 cenários simulados aprovados; seleção essencial/completa, ausência de remoções, inventário fresco, arquitetura/estado, pacotes retidos, falhas e GDM3 |
+| CLI e integração | Sete cenários aprovados; `--with-dev-tools` combinado com dry-run, combinações inválidas recusadas antes do preflight e aplicações opcionais sem bloquear o perfil |
+| Fontes | Seis cenários aprovados; quatro variantes verificadas, corrupção/família inválida recusadas, cache forçado limitado ao destino gerenciado e ausência após rollback |
+| GNOME e transações | 14 cenários de planejamento/GDM e 15 de transações aprovados; animações true/false/null restauradas, reinstalação sem diferenças, backups antigos preservando animações e conflito concorrente mantido |
+| Regressões | Todos os demais componentes de `tests/run.sh` executados em grupos independentes e aprovados, incluindo instalação, transações de arquivos, Posh, Bash/JSONC, multilib, aplicativos, VS Code e scripts legados. As limitações de links/serviços do Windows permanecem |
+| Distribuição | Pacote com 298 arquivos e 201 checksums de recursos; LF/modos executáveis e repetição com SHA-256 idêntico conferidos |
+
+### Medição local do prompt
+
+O teste usou Windows, Git e o [Oh My Posh oficial 31.8.0](https://github.com/JanDeDobbeleer/oh-my-posh/releases/tag/v31.8.0), com versão e SHA-256 do executável conferidos. Um repositório temporário continha alterações e 5.000 arquivos não rastreados. O teste não carregou configurações do usuário. Após cinco aquecimentos por configuração, foram coletadas 30 renderizações alternadas de cada tema; o rastreamento Git ficou desligado durante a medição de tempo.
+
+| Métrica local | Antes | Depois |
+| --- | --- | --- |
+| Chamadas `git status` por renderização, em verificação separada com Git Trace | 1 | 0 |
+| Mediana | 192,554 ms | 80,503 ms |
+| Percentil 95 | 339,433 ms | 120,605 ms |
+
+Diretório, branch e indicação `[7]` foram conferidos na saída real. Renomear a branch atualizou imediatamente o prompt; o comportamento fora de repositórios e após comando bem-sucedido também passou. A evidência local permanece em `.cache/perf-qa/prompt-result-final.json`, junto do script e do tema anterior usados no teste.
+
+Esses tempos medem somente o prompt nesse ambiente Windows. Não foram medidos consumo de RAM, tempo de boot, desempenho gráfico ou economia de energia em Zorin. Esta revisão não acessou uma instalação Zorin real; serviços, dconf e APT dos testes portáteis continuam simulados. Os resultados Linux registrados em 21/10 são históricos e não certificam o novo snapshot v3 ou o cache de fontes no Zorin.
+
+## Animações preservadas — 22/10/2026
+
+O perfil atual mantém `enable-animations=true` no Zorin, conforme a preferência de preservar as animações. A revisão inicial de otimização descrita acima usava `false`; reinstalar agora reativa as animações e inclui o valor substituído no backup. Ícones, fontes, cores, wallpaper e as demais otimizações permanecem como preparados no perfil.
+
+O snapshot continua v3 com oito chaves. Backups e diários anteriores com animações `false`, `true` ou sem valor explícito permanecem válidos e são restaurados fielmente. A recuperação usa os valores registrados no diário, independentemente do novo padrão. O Arch mantém suas sete chaves.
+
+Após o ajuste, passaram 56 testes Python (54 aprovados e dois ignorados por links nativos no Windows), incluindo 23 do helper GNOME; 14 cenários GNOME; cinco cenários transacionais selecionados para os escopos antigos e o novo padrão; ShellCheck e `git diff --check`. Foram conferidos aplicação sobre `false`, reinstalação sem diferenças, rollback para o valor anterior, recuperação de diário v3 antigo e preservação de edições concorrentes. A aceitação gráfica no Zorin real continua pendente.
